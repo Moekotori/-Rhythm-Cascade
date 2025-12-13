@@ -1,0 +1,4577 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Rhythm Cascade - Moekotori</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    <style>
+    @import url('https://fonts.googleapis.com/css2?family=Fredoka:wght@400;600;700;900&family=M+PLUS+Rounded+1c:wght@400;700;900&family=Varela+Round&display=swap');
+
+        :root {
+            --primary: #FF85A2;
+            --secondary: #FFB7C5;
+            --accent: #A8E6CF;
+            --cream: #FFD8CC;
+            --text-color: #6B5B6E;
+            --mod-selected: #FF85A2;
+            --bg-grad-start: #FFD1DC;
+            --bg-grad-end: #E8F8F5;
+            --fast: #5CB3FF;
+            --late: #FFB347;
+            --receptor-glow: rgba(255, 200, 220, 0.7);
+            --card-glass: rgba(255,245,250,0.92);
+            --card-border: rgba(255,200,220,0.5);
+            --ink: rgba(80, 50, 70, 0.75);
+            --pink-glow: rgba(255,133,162,0.4);
+            --sparkle: #FFE4EC;
+        }
+
+        @keyframes floaty {
+            0%, 100% { transform: translateY(0) rotate(-1deg); }
+            50% { transform: translateY(-10px) rotate(1deg); }
+        }
+        @keyframes bgScrollDots {
+            0% { background-position: 0 0, 60px 60px; }
+            100% { background-position: 200px 350px, 260px 410px; }
+        }
+        @keyframes bgScrollStripes {
+            0% { transform: translate3d(0,0,0); }
+            100% { transform: translate3d(-200px,150px,0); }
+        }
+        @keyframes floatHeart {
+            0% { transform: translateY(100vh) scale(0) rotate(0deg); opacity: 0; }
+            10% { opacity: 1; }
+            90% { opacity: 1; }
+            100% { transform: translateY(-20vh) scale(1) rotate(360deg); opacity: 0; }
+        }
+        @keyframes floatStar {
+            0% { transform: translateY(100vh) scale(0.5) rotate(0deg); opacity: 0; }
+            15% { opacity: 0.9; }
+            85% { opacity: 0.9; }
+            100% { transform: translateY(-15vh) scale(1.2) rotate(720deg); opacity: 0; }
+        }
+        @keyframes floatSparkle {
+            0%, 100% { transform: scale(0.8) rotate(0deg); opacity: 0.3; }
+            50% { transform: scale(1.3) rotate(180deg); opacity: 1; }
+        }
+        @keyframes cloudDrift {
+            0% { transform: translateX(-100px); }
+            100% { transform: translateX(calc(100vw + 100px)); }
+        }
+
+        html, body {
+            width: 100%;
+            height: 100%;
+            margin: 0;
+            padding: 0;
+            background: linear-gradient(160deg, #FFD1DC 0%, #FFE4EC 30%, #FFF0F5 50%, #E8FFF5 75%, #D4F5ED 100%);
+        }
+
+        body {
+            margin: 0;
+            overflow: hidden;
+            background: linear-gradient(160deg, #FFE8F0 0%, #FFF2F5 20%, #FFFAF5 45%, #F5FFFA 70%, #E8FFF5 100%);
+            font-family: 'Fredoka', 'M PLUS Rounded 1c', 'Varela Round', sans-serif;
+            color: var(--text-color);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            user-select: none;
+        }
+
+        /* 可爱漂浮元素容器 */
+        #floating-elements {
+            position: fixed;
+            inset: 0;
+            pointer-events: none;
+            z-index: -1;
+            overflow: hidden;
+        }
+        .floating-heart {
+            position: absolute;
+            font-size: 20px;
+            color: #FF85A2;
+            filter: drop-shadow(0 2px 4px rgba(255,133,162,0.3));
+            animation: floatHeart 12s ease-in-out infinite;
+        }
+        .floating-star {
+            position: absolute;
+            font-size: 16px;
+            color: #FFD700;
+            filter: drop-shadow(0 2px 4px rgba(255,215,0,0.4));
+            animation: floatStar 15s ease-in-out infinite;
+        }
+        .floating-cloud {
+            position: absolute;
+            font-size: 40px;
+            color: rgba(255,255,255,0.8);
+            filter: drop-shadow(0 4px 8px rgba(255,200,220,0.2));
+            animation: cloudDrift 45s linear infinite;
+        }
+        .floating-sparkle {
+            position: absolute;
+            width: 8px;
+            height: 8px;
+            background: radial-gradient(circle, #fff 0%, rgba(255,200,220,0.8) 50%, transparent 70%);
+            border-radius: 50%;
+            animation: floatSparkle 3s ease-in-out infinite;
+        }
+        
+        /* 音游背景元素 */
+        .floating-note {
+            position: absolute;
+            bottom: -50px;
+            animation: floatNote 15s ease-in-out infinite;
+            filter: drop-shadow(0 2px 6px currentColor);
+        }
+        
+        .beat-circle {
+            position: absolute;
+            width: 30px;
+            height: 30px;
+            border: 3px solid #FF85A2;
+            border-radius: 50%;
+            opacity: 0;
+            animation: beatPulse 4s ease-out infinite;
+        }
+        
+        .sound-wave {
+            position: absolute;
+            width: 20px;
+            height: 20px;
+            border: 2px solid rgba(255,133,162,0.4);
+            border-radius: 50%;
+            animation: waveExpand 6s ease-out infinite;
+        }
+        
+        @keyframes floatNote {
+            0% {
+                transform: translateY(0) rotate(0deg) scale(1);
+                opacity: 0;
+            }
+            10% {
+                opacity: 0.6;
+            }
+            50% {
+                transform: translateY(-50vh) rotate(15deg) scale(1.1);
+            }
+            90% {
+                opacity: 0.6;
+            }
+            100% {
+                transform: translateY(-100vh) rotate(-10deg) scale(0.9);
+                opacity: 0;
+            }
+        }
+        
+        @keyframes beatPulse {
+            0% {
+                transform: scale(0.5);
+                opacity: 0.8;
+            }
+            50% {
+                transform: scale(2);
+                opacity: 0.3;
+            }
+            100% {
+                transform: scale(3);
+                opacity: 0;
+            }
+        }
+        
+        @keyframes waveExpand {
+            0% {
+                transform: scale(1);
+                opacity: 0.6;
+            }
+            100% {
+                transform: scale(8);
+                opacity: 0;
+            }
+        }
+
+        /* 动态条纹 - 更粉嫩 */
+        body::after {
+            content: '';
+            position: fixed;
+            inset: -80px;
+            pointer-events: none;
+            background: repeating-linear-gradient(
+                125deg,
+                rgba(255,133,162,0.12) 0px,
+                rgba(255,133,162,0.12) 25px,
+                rgba(255,216,204,0.10) 25px,
+                rgba(255,216,204,0.10) 50px,
+                rgba(168,230,207,0.10) 50px,
+                rgba(168,230,207,0.10) 75px,
+                rgba(255,228,236,0.12) 75px,
+                rgba(255,228,236,0.12) 100px
+            );
+            mix-blend-mode: normal;
+            opacity: 0.9;
+            animation: bgScrollStripes 40s linear infinite;
+            z-index: -2;
+        }
+
+        /* 动态波点 - 更可爱的粉色圆点 */
+        body::before {
+            content: "";
+            position: fixed;
+            inset: -30px;
+            background-image:
+                radial-gradient(circle, rgba(255,133,162,0.25) 10px, transparent 11px),
+                radial-gradient(circle, rgba(255,216,204,0.3) 8px, transparent 9px),
+                radial-gradient(circle, rgba(168,230,207,0.2) 6px, transparent 7px);
+            background-position: 0 0, 70px 70px, 35px 35px;
+            background-size: 140px 140px, 120px 120px, 100px 100px;
+            opacity: 0.8;
+            z-index: -3;
+            pointer-events: none;
+            animation: bgScrollDots 25s linear infinite;
+        }
+
+        /* Live2D 看板娘：固定右下角（库默认如此，这里加兜底避免被遮罩裁切） */
+        #live2d-widget, .live2d-widget-container {
+            position: fixed !important;
+            right: 0 !important;
+            bottom: 0 !important;
+            z-index: 9999 !important;
+            pointer-events: auto;
+        }
+
+        /* 隐藏滚动条 - 更粉嫩 */
+        ::-webkit-scrollbar { width: 10px; }
+        ::-webkit-scrollbar-track { background: rgba(255,200,220,0.15); border-radius: 10px; }
+        ::-webkit-scrollbar-thumb { 
+            background: linear-gradient(180deg, #FF85A2, #FFB7C5); 
+            border-radius: 10px; 
+            border: 2px solid rgba(255,255,255,0.5);
+        }
+        ::-webkit-scrollbar-thumb:hover { background: linear-gradient(180deg, #FF6B8A, #FF85A2); }
+
+        /* 果冻边框效果 */
+        @keyframes jellyPulse {
+            0%, 100% { 
+                box-shadow: 
+                    0 0 0 4px rgba(255,255,255,0.9),
+                    0 0 0 8px rgba(255,183,197,0.4),
+                    0 0 0 12px rgba(255,133,162,0.2),
+                    0 25px 60px rgba(255, 133, 162, 0.2),
+                    inset 0 2px 8px rgba(255,255,255,0.5),
+                    inset 0 -4px 12px rgba(255,133,162,0.1);
+            }
+            50% { 
+                box-shadow: 
+                    0 0 0 5px rgba(255,255,255,0.95),
+                    0 0 0 10px rgba(168,230,207,0.35),
+                    0 0 0 14px rgba(168,230,207,0.15),
+                    0 28px 65px rgba(255, 133, 162, 0.22),
+                    inset 0 2px 8px rgba(255,255,255,0.6),
+                    inset 0 -4px 12px rgba(168,230,207,0.1);
+            }
+        }
+
+        #game-container {
+            position: relative;
+            width: min(800px, 100vw);
+            max-width: 800px; 
+            height: 100vh;
+            background: linear-gradient(180deg, rgba(255,250,252,0.98) 0%, rgba(255,245,248,0.95) 50%, rgba(250,255,253,0.93) 100%);
+            box-shadow: 
+                0 0 0 4px rgba(255,255,255,0.9),
+                0 0 0 8px rgba(255,183,197,0.4),
+                0 0 0 12px rgba(255,133,162,0.2),
+                0 25px 60px rgba(255, 133, 162, 0.2),
+                inset 0 2px 8px rgba(255,255,255,0.5),
+                inset 0 -4px 12px rgba(255,133,162,0.1);
+            overflow: hidden;
+            border: none;
+            transition: box-shadow 0.4s ease;
+            z-index: 1;
+            border-radius: 28px;
+            animation: jellyPulse 4s ease-in-out infinite;
+            /* 性能优化: 隔离渲染层 */
+            contain: layout style paint;
+            isolation: isolate;
+        }
+
+        #game-container.fever-active {
+            animation: none;
+            box-shadow: 
+                0 0 0 5px rgba(255,215,0,0.8),
+                0 0 0 10px rgba(255,215,0,0.4),
+                0 0 0 16px rgba(255,215,0,0.2),
+                0 0 70px rgba(255, 215, 0, 0.5), 
+                inset 0 0 40px rgba(255, 215, 0, 0.15);
+        }
+
+    canvas { 
+        display: block; 
+        width: 100%; 
+        height: 100%; 
+        background: transparent;
+        /* 性能优化: GPU加速 + 独立渲染层 */
+        will-change: contents;
+        contain: strict;
+        touch-action: none;
+    }
+
+        .ui-layer {
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            pointer-events: none;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            transition: opacity 0.3s ease;
+            font-family: 'M PLUS Rounded 1c', sans-serif;
+        }
+
+        .modal-bg {
+            background: linear-gradient(135deg, rgba(255,240,245,0.98) 0%, rgba(255,218,193,0.95) 50%, rgba(181,234,215,0.9) 100%);
+            backdrop-filter: blur(20px);
+            z-index: 10;
+            pointer-events: auto;
+            box-shadow: 0 20px 60px rgba(255,154,162,0.2);
+        }
+
+        /* 强制主界面不灰：Start / Settings / Results 都套用糖果底（优先级更高） */
+        #start-screen.modal-bg,
+        #settings-screen.modal-bg,
+        #results-screen.modal-bg {
+            background: linear-gradient(150deg, #FFF5F8 0%, #FFE8F0 25%, #FFF0E8 50%, #F5FFFA 75%, #E8FFF5 100%) !important;
+        }
+
+        /* 界面显隐控制 */
+    #start-screen { z-index: 10; }
+    #results-screen { z-index: 20; display: none; opacity: 0; transform: translateY(20px); transition: opacity 0.3s ease, transform 0.3s ease; }
+    #results-screen.visible { opacity: 1; transform: translateY(0); }
+    #settings-screen { z-index: 30; display: none; justify-content: flex-start; padding-top: 30px; overflow-y: auto; }
+        
+        #mods-screen { 
+            z-index: 35; 
+            display: none; 
+            background: linear-gradient(150deg, #FFF5F8 0%, #FFE8F0 30%, #FFFAF5 60%, #F0FFF8 100%);
+            backdrop-filter: blur(25px);
+            opacity: 0;
+            transition: opacity 0.3s ease;
+            pointer-events: auto;
+            box-shadow: 0 20px 60px rgba(255,133,162,0.25);
+        }
+        #mods-screen.visible { opacity: 1; display: flex; }
+
+    #pause-screen { 
+        z-index: 40; 
+        display: none; 
+        background: linear-gradient(180deg, rgba(255,133,162,0.5) 0%, rgba(255,183,197,0.4) 50%, rgba(168,230,207,0.4) 100%); 
+        backdrop-filter: blur(12px); 
+        pointer-events: auto; 
+        padding: 20px; 
+        box-sizing: border-box;
+        opacity: 0;
+        transition: opacity 0.25s ease-out;
+    }
+    #pause-screen.visible { opacity: 1; display: flex; }
+    #pause-screen .pause-title {
+        transform: translateY(-20px);
+        opacity: 0;
+        transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1) 0.1s;
+    }
+    #pause-screen.visible .pause-title {
+        transform: translateY(0);
+        opacity: 1;
+    }
+    #pause-screen .pause-controls {
+        transform: scale(0.9);
+        opacity: 0;
+        transition: all 0.3s ease 0.15s;
+    }
+    #pause-screen.visible .pause-controls {
+        transform: scale(1);
+        opacity: 1;
+    }
+    #pause-screen > .btn {
+        transform: translateY(20px);
+        opacity: 0;
+        transition: all 0.25s ease;
+    }
+    #pause-screen.visible > .btn { transform: translateY(0); opacity: 1; }
+    #pause-screen.visible > .btn#resume-btn { transition-delay: 0.2s; }
+    #pause-screen.visible > .btn#restart-btn { transition-delay: 0.25s; }
+    #pause-screen.visible > .btn#quit-btn { transition-delay: 0.3s; }
+    .pause-controls { background: linear-gradient(135deg, rgba(255,255,255,0.98) 0%, rgba(255,232,240,0.95) 100%); padding: 16px 20px; border-radius: 24px; box-shadow: 0 10px 30px rgba(255,133,162,0.2); margin-bottom: 14px; width: 280px; border: 3px solid rgba(255,255,255,0.9); }
+    .pause-row { display: flex; justify-content: space-between; font-weight: 700; color: var(--primary); margin: 6px 0; }
+        
+        #loading-overlay { 
+            z-index: 50; 
+            background: linear-gradient(150deg, #FFF5F8 0%, #FFE8F0 30%, #FFFAF5 60%, #F0FFF8 100%); 
+            display: none; 
+            justify-content: center; 
+            align-items: center;
+            flex-direction: column;
+        }
+
+        /* 标题样式 - 更可爱萌萌 */
+        @keyframes titleBounce {
+            0%, 100% { transform: translateY(0) rotate(-1.5deg); }
+            25% { transform: translateY(-8px) rotate(0.5deg); }
+            50% { transform: translateY(-12px) rotate(1.5deg); }
+            75% { transform: translateY(-8px) rotate(0.5deg); }
+        }
+        @keyframes titleGlow {
+            0%, 100% { text-shadow: 3px 3px 0 #fff, 6px 6px 0 rgba(255,133,162,0.35), 0 0 35px rgba(255,133,162,0.35); }
+            50% { text-shadow: 3px 3px 0 #fff, 6px 6px 0 rgba(168,230,207,0.45), 0 0 45px rgba(168,230,207,0.45); }
+        }
+        @keyframes titleShimmer {
+            0% { background-position: -200% center; }
+            100% { background-position: 200% center; }
+        }
+        h1 {
+            font-size: 4.5rem;
+            margin: 0 0 10px 0;
+            color: var(--primary);
+            background: linear-gradient(135deg, #FF85A2 0%, #FFB7C5 35%, #FFD8CC 65%, #A8E6CF 100%);
+            background-size: 300% 100%;
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+            text-shadow: none;
+            filter: drop-shadow(3px 3px 0 #fff) drop-shadow(6px 6px 0 rgba(255,133,162,0.25));
+            text-align: center;
+            letter-spacing: 4px;
+            line-height: 1;
+            animation: titleBounce 3.5s ease-in-out infinite, titleGlow 4s ease-in-out infinite, titleShimmer 8s linear infinite;
+        }
+
+        /* 封面卡片 (Start Screen) - 更粉嫩可爱 */
+        .song-card {
+            width: 300px;
+            height: 180px;
+            background: linear-gradient(135deg, #FFD6E0 0%, #FFE8F0 50%, #FFD8CC 100%);
+            border-radius: 28px;
+            margin-bottom: 20px;
+            box-shadow: 
+                0 14px 35px rgba(255,133,162,0.3), 
+                0 6px 0 rgba(255,133,162,0.2),
+                inset 0 0 0 3px rgba(255,255,255,0.5);
+            background-size: cover;
+            background-position: center;
+            display: flex;
+            align-items: flex-end;
+            overflow: hidden;
+            position: relative;
+            border: 4px solid #fff;
+            transform: rotate(-2.5deg);
+            transition: transform 0.28s cubic-bezier(.34,1.56,.64,1), box-shadow 0.28s ease;
+        }
+
+        .song-card:hover {
+            transform: rotate(0deg) scale(1.06);
+            box-shadow: 0 20px 45px rgba(255,154,162,0.3), 0 8px 0 rgba(181,234,215,0.2);
+        }
+        
+        .song-card-info {
+            width: 100%;
+            background: linear-gradient(180deg, rgba(255,255,255,0.95) 0%, rgba(255,218,193,0.9) 100%);
+            padding: 12px;
+            text-align: center;
+            font-weight: bold;
+            color: var(--primary);
+            border-radius: 0 0 24px 24px;
+        }
+
+        /* 按钮样式 - 更粉嫩萌萌3D胶囊风 */
+        .btn {
+            background: linear-gradient(180deg, #fff 0%, #FFF0F5 100%);
+            color: var(--primary);
+            border: 3px solid rgba(255,133,162,0.5);
+            padding: 15px 34px;
+            font-size: 1.15rem;
+            font-family: inherit;
+            font-weight: 900;
+            cursor: pointer;
+            transition: all 0.25s cubic-bezier(.34,1.56,.64,1);
+            border-radius: 999px;
+            margin: 8px;
+            min-width: 160px;
+            box-shadow: 
+                0 8px 0 rgba(255,133,162,0.35), 
+                0 16px 35px rgba(255, 133, 162, 0.2),
+                inset 0 2px 0 rgba(255,255,255,0.8);
+            pointer-events: auto;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+        }
+
+        .btn:hover {
+            transform: translateY(-5px) scale(1.05) rotate(-1deg);
+            background: linear-gradient(180deg, #FF85A2 0%, #FFB7C5 100%);
+            color: #fff;
+            border-color: #FF85A2;
+            box-shadow: 
+                0 12px 0 rgba(255,133,162,0.45), 
+                0 24px 45px rgba(255, 133, 162, 0.3),
+                inset 0 2px 0 rgba(255,255,255,0.5);
+        }
+        
+        .btn:active {
+            transform: translateY(4px) scale(0.97);
+            box-shadow: 0 4px 0 rgba(255, 133, 162, 0.35), 0 8px 18px rgba(255, 133, 162, 0.2);
+        }
+
+        .btn-secondary {
+            background: linear-gradient(180deg, #fff 0%, #F0FFF8 100%);
+            border-color: rgba(168,230,207,0.5);
+            color: #6BC4A6;
+            box-shadow: 0 8px 0 rgba(168,230,207,0.35), 0 16px 35px rgba(168,230,207,0.2);
+        }
+        .btn-secondary:hover {
+            background: linear-gradient(180deg, #A8E6CF 0%, #8DD4B8 100%);
+            color: #fff;
+            border-color: #A8E6CF;
+            transform: translateY(-5px) scale(1.05) rotate(1deg);
+            box-shadow: 0 12px 0 rgba(168,230,207,0.45), 0 24px 45px rgba(168,230,207,0.3);
+        }
+
+        .btn-import {
+            background: linear-gradient(180deg, #FFDAC1 0%, #FFD0B0 100%);
+            border-color: rgba(255,218,193,0.8);
+            color: #E08850;
+            text-shadow: none;
+            box-shadow: 0 8px 0 rgba(255,218,193,0.5), 0 16px 32px rgba(255,218,193,0.25);
+        }
+        .btn-import:hover {
+            background: linear-gradient(180deg, #FFD0B0 0%, #FFDAC1 100%);
+            color: #fff;
+            border-color: #FFDAC1;
+            color: #fff;
+        }
+
+        /* HUD - 更可爱的果冻毛玻璃风 */
+        .hud {
+            position: fixed;
+            top: 16px;
+            left: 16px;
+            width: 200px;
+            padding: 16px 18px;
+            box-sizing: border-box;
+            display: none;
+            flex-direction: column;
+            gap: 10px;
+            align-items: flex-start;
+            font-size: 0.95rem;
+            font-weight: 700;
+            z-index: 100;
+            pointer-events: none;
+            text-shadow: 0 1px 2px rgba(255,255,255,0.9);
+            background: linear-gradient(145deg, rgba(255,250,252,0.95) 0%, rgba(255,232,240,0.9) 50%, rgba(255,216,204,0.85) 100%);
+            border-radius: 24px;
+            border: none;
+            box-shadow: 
+                0 0 0 3px rgba(255,255,255,0.9),
+                0 0 0 6px rgba(255,133,162,0.2),
+                0 12px 30px rgba(255,133,162,0.2),
+                inset 0 2px 4px rgba(255,255,255,0.9),
+                inset 0 -2px 4px rgba(255,133,162,0.1);
+            backdrop-filter: blur(16px);
+        }
+        
+        .hud-stats {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            font-size: 0.85rem;
+            width: 100%;
+        }
+        .hud-stat-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            width: 100%;
+            padding: 4px 8px;
+            background: rgba(255,255,255,0.5);
+            border-radius: 12px;
+        }
+        .hud-stat-label { font-weight: 800; color: var(--text-color); }
+
+        .hud-value { 
+            font-family: 'Fredoka', 'M PLUS Rounded 1c', monospace; 
+            color: var(--primary); 
+            font-size: 1.1rem; 
+            text-align: right;
+            font-weight: 700;
+        }
+        
+        .hud-label {
+            font-size: 0.75rem;
+            color: #999;
+            display: block;
+            margin-bottom: 2px;
+            letter-spacing: 0.5px;
+        }
+
+        .hud-song {
+            margin-top: 2px;
+            font-size: 0.85rem;
+            color: var(--primary);
+            font-weight: 700;
+            text-align: center;
+            width: 100%;
+            opacity: 0.8;
+        }
+
+        #hud-bg-thumb {
+            width: 100%;
+            height: 70px;
+            border-radius: 16px;
+            background-size: cover;
+            background-position: center;
+            margin-top: 4px;
+            box-shadow: 
+                inset 0 0 0 2px rgba(255,255,255,0.8),
+                0 6px 16px rgba(255,133,162,0.15);
+        }
+
+        .hud-score-area {
+            width: 100%;
+            padding: 8px 10px;
+            background: linear-gradient(135deg, rgba(255,133,162,0.1) 0%, rgba(168,230,207,0.1) 100%);
+            border-radius: 14px;
+            margin-top: 4px;
+        }
+        .hud-score-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin: 4px 0;
+        }
+
+        /* 樱花飘落容器 */
+        #sakura-container {
+            position: fixed;
+            inset: 0;
+            pointer-events: none;
+            z-index: 0;
+            overflow: hidden;
+        }
+        .sakura-petal {
+            position: absolute;
+            width: 12px;
+            height: 12px;
+            background: radial-gradient(ellipse at 30% 30%, #FFD6E0 0%, #FF85A2 60%, #FF6B8A 100%);
+            border-radius: 150% 0 150% 0;
+            opacity: 0;
+            filter: drop-shadow(0 2px 3px rgba(255,133,162,0.3));
+            animation: sakuraFall linear infinite;
+            --sway: 50px;
+        }
+        @keyframes sakuraFall {
+            0% {
+                transform: translateY(-20px) translateX(0) rotate(0deg) scale(0.8);
+                opacity: 0;
+            }
+            5% { opacity: 0.85; }
+            25% { transform: translateY(25vh) translateX(var(--sway)) rotate(180deg) scale(0.9); }
+            50% { transform: translateY(50vh) translateX(calc(var(--sway) * -0.5)) rotate(360deg) scale(0.85); }
+            75% { transform: translateY(75vh) translateX(var(--sway)) rotate(540deg) scale(0.75); }
+            95% { opacity: 0.85; }
+            100% {
+                transform: translateY(100vh) translateX(0) rotate(720deg) scale(0.6);
+                opacity: 0;
+            }
+        }
+
+        #bg-dim-layer {
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: radial-gradient(circle at center, rgba(255,255,255,0) 0%, rgba(255,200,220,0.08) 85%);
+            pointer-events: none;
+            z-index: 0;
+            transition: background 0.2s ease;
+        }
+
+        #fps-counter {
+            position: absolute;
+            bottom: 10px;
+            left: 10px;
+            font-family: monospace;
+            font-size: 0.8rem;
+            color: #aaa;
+            z-index: 6;
+            display: none;
+            background: rgba(255,255,255,0.8);
+            padding: 2px 6px;
+            border-radius: 4px;
+        }
+
+        /* Speed Toast - 萌萌风 */
+        #speed-toast {
+            position: absolute;
+            bottom: 20%;
+            left: 50%;
+            transform: translateX(-50%);
+            background: linear-gradient(135deg, rgba(255,154,162,0.95), rgba(255,218,193,0.95));
+            color: #fff;
+            padding: 12px 28px;
+            border-radius: 999px;
+            font-size: 1.2rem;
+            font-weight: 900;
+            opacity: 0;
+            transition: opacity 0.3s;
+            pointer-events: none;
+            z-index: 20;
+            border: 3px solid rgba(255,255,255,0.6);
+            box-shadow: 0 8px 24px rgba(255,154,162,0.3);
+        }
+
+        #offset-hint {
+            position: absolute;
+            bottom: 15%;
+            left: 50%;
+            transform: translateX(-50%);
+            background: linear-gradient(135deg, rgba(255,255,255,0.98), rgba(255,218,193,0.92));
+            color: var(--primary);
+            padding: 10px 22px;
+            border-radius: 999px;
+            font-size: 1rem;
+            font-weight: 700;
+            box-shadow: 0 8px 24px rgba(255,154,162,0.2);
+            border: 2px solid rgba(255,154,162,0.3);
+            opacity: 0;
+            transition: opacity 0.3s;
+            pointer-events: none;
+            z-index: 20;
+        }
+
+        #result-bg-banner {
+            width: 320px;
+            height: 140px;
+            border-radius: 20px;
+            background: linear-gradient(135deg, #FFE4EC, #B5EAD7);
+            background-size: cover;
+            background-position: center;
+            margin-bottom: 12px;
+            box-shadow: 0 12px 30px rgba(255,154,162,0.15);
+            border: 4px solid #fff;
+        }
+
+        #progress-bar-wrap {
+            position: fixed;
+            top: 50%;
+            right: calc(50% - min(400px, 50vw) - 35px);
+            transform: translateY(-50%);
+            width: 12px;
+            height: 60vh;
+            border-radius: 999px;
+            background: rgba(255,218,193,0.4);
+            box-shadow: inset 0 0 0 2px rgba(255,255,255,0.7), 0 6px 18px rgba(255,154,162,0.15);
+            overflow: hidden;
+            z-index: 100;
+        }
+        #progress-bar {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            height: 0%;
+            background: linear-gradient(0deg, #FF9AA2, #FFB7C5, #B5EAD7);
+            box-shadow: 0 0 16px rgba(255, 154, 162, 0.5);
+            transition: height 0.08s linear;
+            border-radius: 999px;
+        }
+
+        /* Sliders cute style */
+        input[type=range] {
+            -webkit-appearance: none;
+            appearance: none;
+            height: 10px;
+            border-radius: 999px;
+            background: linear-gradient(90deg, #ffcfe1, #c6f1ff);
+            outline: none;
+        }
+        input[type=range]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 22px;
+            height: 22px;
+            border-radius: 50%;
+            background: white;
+            border: 3px solid var(--primary);
+            box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+        }
+        input[type=range]::-moz-range-thumb {
+            width: 22px; height: 22px; border-radius: 50%; background: white; border: 3px solid var(--primary); box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+        }
+
+        /* Fever Bars - 萌萌风 */
+        #fever-bar-container {
+            position: absolute;
+            top: 70px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 60%;
+            height: 8px;
+            background: rgba(255,218,193,0.3);
+            border-radius: 999px;
+            overflow: hidden;
+            opacity: 0;
+            transition: opacity 0.3s;
+            border: 2px solid rgba(255,255,255,0.5);
+        }
+        #fever-fill {
+            width: 0%;
+            height: 100%;
+            background: linear-gradient(90deg, #FF9AA2, #FFD700, #B5EAD7);
+            box-shadow: 0 0 16px rgba(255,215,0,0.6);
+            transition: width 0.1s linear;
+        }
+        #fever-text {
+            position: absolute;
+            top: 85px;
+            left: 50%;
+            transform: translateX(-50%);
+            color: #FFD700;
+            font-weight: 900;
+            font-size: 1.3rem;
+            letter-spacing: 5px;
+            text-shadow: 0 3px 0 rgba(255,154,162,0.4), 0 0 20px rgba(255, 215, 0, 0.5);
+            opacity: 0;
+        }
+        #fever-text.active { opacity: 1; animation: pulse 0.5s infinite alternate; }
+
+        /* Combo - 超可爱萌萌糖果风 - 固定居中 */
+        @keyframes comboPop {
+            0% { transform: scale(0.85); }
+            50% { transform: scale(1.12); }
+            100% { transform: scale(1); }
+        }
+        @keyframes comboShine {
+            0%, 100% { filter: drop-shadow(0 4px 0 rgba(255,133,162,0.4)) drop-shadow(0 8px 20px rgba(255,133,162,0.25)) brightness(1); }
+            50% { filter: drop-shadow(0 4px 0 rgba(255,133,162,0.5)) drop-shadow(0 10px 25px rgba(255,133,162,0.35)) brightness(1.05); }
+        }
+        #combo-container {
+            position: absolute;
+            top: 28%;
+            left: 0;
+            right: 0;
+            margin: 0 auto;
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            opacity: 0;
+            transition: opacity 0.15s;
+            z-index: 4;
+            pointer-events: none;
+        }
+        #combo-container.combo-bump {
+            animation: comboPop 0.12s cubic-bezier(.17,.67,.35,1.5);
+        }
+        .hidden { opacity: 0 !important; }
+
+        #combo-num {
+            font-size: 5.5rem;
+            font-weight: 900;
+            line-height: 1;
+            color: #fff;
+            background: linear-gradient(180deg, #fff 0%, #FFE0EC 40%, #FFB7C5 100%);
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+            -webkit-text-stroke: 4px rgba(255,133,162,0.5);
+            filter: drop-shadow(0 4px 0 rgba(255,133,162,0.4)) drop-shadow(0 8px 20px rgba(255,133,162,0.25));
+            animation: comboShine 2s ease-in-out infinite;
+            letter-spacing: -2px;
+            transition: transform 0.08s ease-out;
+        }
+        #combo-num.fever {
+            background: linear-gradient(180deg, #FFF8DC 0%, #FFD700 50%, #FFA500 100%);
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+            -webkit-text-stroke: 4px rgba(255,215,0,0.6);
+            filter: drop-shadow(0 0 25px rgba(255, 215, 0, 0.7)) drop-shadow(0 5px 0 rgba(255,180,0,0.4));
+        }
+        #combo-text {
+            font-size: 1.1rem;
+            letter-spacing: 4px;
+            color: var(--primary);
+            font-weight: 900;
+            text-shadow: 0 2px 0 rgba(255,255,255,1), 0 4px 8px rgba(255,133,162,0.2);
+            margin-top: 4px;
+            text-transform: uppercase;
+        }
+
+        /* Judgement */
+        #judge-text {
+            position: absolute;
+            top: 45%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: min(520px, 92%);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            opacity: 0;
+            z-index: 6;
+            pointer-events: none;
+        }
+        #judge-main {
+            font-size: 2.8rem;
+            font-weight: 900;
+            letter-spacing: 1px;
+            text-shadow:
+                0 2px 0 rgba(255,255,255,0.95),
+                0 10px 22px rgba(0,0,0,0.12),
+                0 0 18px rgba(255,255,255,0.55);
+            -webkit-text-stroke: 1.4px rgba(255,255,255,0.82);
+            color: var(--primary);
+        }
+        #judge-timing {
+            font-size: 1.05rem;
+            font-weight: 800;
+            margin-top: -6px;
+            letter-spacing: 2px;
+            text-shadow: 0 2px 0 rgba(255,255,255,0.95), 0 6px 14px rgba(0,0,0,0.12);
+            -webkit-text-stroke: 1px rgba(255,255,255,0.82);
+            color: var(--text-color);
+        }
+        .timing-fast { color: var(--fast); }
+        .timing-late { color: var(--late); }
+
+        /* Settings */
+        .settings-scroll-area {
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding-bottom: 50px;
+        }
+        .settings-group {
+            width: 85%;
+            max-width: 550px;
+            margin-bottom: 20px;
+            background: linear-gradient(180deg, rgba(255,255,255,0.92) 0%, rgba(255,255,255,0.82) 100%);
+            padding: 20px 30px;
+            border-radius: 20px;
+            box-shadow: 0 14px 34px rgba(255,154,162,0.10);
+            border: 2px solid rgba(255,154,162,0.14);
+            backdrop-filter: blur(12px);
+        }
+        .setting-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+        }
+        .setting-label { font-size: 1.08rem; color: var(--ink); font-weight: 900; letter-spacing: 0.3px; }
+        
+        /* Smooth Transition for Inputs */
+        input[type="range"] { 
+            width: 200px;
+            cursor: pointer;
+            transition: filter 0.2s;
+            height: 12px;
+        }
+        input[type="range"]::-webkit-slider-thumb {
+            width: 26px;
+            height: 26px;
+            border: 4px solid rgba(255,154,162,0.75);
+            box-shadow: 0 8px 0 rgba(255,154,162,0.25), 0 10px 16px rgba(0,0,0,0.10);
+        }
+        input[type="range"]::-moz-range-thumb {
+            width: 26px;
+            height: 26px;
+            border: 4px solid rgba(255,154,162,0.75);
+            box-shadow: 0 8px 0 rgba(255,154,162,0.25), 0 10px 16px rgba(0,0,0,0.10);
+        }
+
+        /* Toggle-style checkbox */
+        input[type="checkbox"] {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 52px;
+            height: 28px;
+            border-radius: 999px;
+            background: rgba(0,0,0,0.10);
+            box-shadow: inset 0 0 0 2px rgba(0,0,0,0.08);
+            position: relative;
+            cursor: pointer;
+            transition: background 0.18s ease, box-shadow 0.18s ease;
+        }
+        input[type="checkbox"]::after {
+            content: '';
+            position: absolute;
+            top: 3px;
+            left: 3px;
+            width: 22px;
+            height: 22px;
+            border-radius: 50%;
+            background: #fff;
+            box-shadow: 0 6px 0 rgba(0,0,0,0.10), 0 10px 14px rgba(0,0,0,0.10);
+            transition: transform 0.18s ease;
+        }
+        input[type="checkbox"]:checked {
+            background: linear-gradient(180deg, rgba(181,234,215,1) 0%, rgba(255,154,162,0.75) 100%);
+            box-shadow: inset 0 0 0 2px rgba(255,255,255,0.55);
+        }
+        input[type="checkbox"]:checked::after {
+            transform: translateX(24px);
+            box-shadow: 0 6px 0 rgba(255,154,162,0.25), 0 10px 14px rgba(0,0,0,0.10);
+        }
+        input[type="checkbox"]:active { transform: scale(0.98); }
+        
+        /* Value Display Transition */
+        span[id$="-display"] {
+            transition: color 0.2s, transform 0.2s;
+            font-weight: bold;
+            color: var(--primary);
+        }
+
+        select {
+            appearance: none;
+            background-color: #fff;
+            border: 2px solid var(--accent);
+            color: #555;
+            padding: 8px 35px 8px 15px;
+            border-radius: 25px;
+            font-family: inherit;
+            font-weight: 700;
+            cursor: pointer;
+            outline: none;
+            background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23B5EAD7' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
+            background-repeat: no-repeat;
+            background-position: right 10px center;
+            background-size: 16px;
+            transition: border-color 0.3s, box-shadow 0.3s;
+        }
+        select:hover { border-color: var(--primary); }
+        select:focus { border-color: var(--primary); box-shadow: 0 0 0 3px rgba(255, 154, 162, 0.2); }
+
+        .keybind-container { display: flex; justify-content: space-between; gap: 15px; margin-top: 15px; }
+        .key-input {
+            width: 70px; height: 70px;
+            background: #fff; border: 3px solid #eee;
+            color: #555; font-size: 1.4rem; font-weight: bold;
+            display: flex; justify-content: center; align-items: center;
+            cursor: pointer; transition: all 0.2s; border-radius: 18px;
+            box-shadow: 0 4px 0 #eee;
+        }
+        .key-input:hover { border-color: var(--primary); color: var(--primary); }
+        .key-input.binding { 
+            border-color: var(--primary); background: #FFF0F5; color: var(--primary); 
+            animation: pulse 0.5s infinite alternate; 
+        }
+
+        .sys-bind-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; color: #666; font-weight: bold;}
+        .sys-key-input {
+            padding: 8px 20px;
+            background: #eee; border-radius: 20px;
+            font-weight: bold; color: #555;
+            cursor: pointer; border: 2px solid transparent;
+            min-width: 60px; text-align: center;
+            transition: all 0.2s;
+        }
+        .sys-key-input:hover { border-color: var(--primary); background: #fff; }
+        .sys-key-input.binding { background: #FFF0F5; color: var(--primary); animation: pulse 0.5s infinite; }
+
+        @keyframes pulse { 0% { transform: scale(0.95); } 100% { transform: scale(1.05); } }
+        @keyframes pop { 0% { transform: translate(-50%, -50%) scale(0.8); } 50% { transform: translate(-50%, -50%) scale(1.2); } 100% { transform: translate(-50%, -50%) scale(1); } }
+
+        /* Candy judgement animations (no extra translate to keep centering stable) */
+        @keyframes judgePop {
+            0% { transform: scale(0.78) rotate(-2deg); filter: blur(0.2px); }
+            45% { transform: scale(1.14) rotate(2deg); }
+            100% { transform: scale(1) rotate(0deg); }
+        }
+        @keyframes judgeMissDrop {
+            0% { transform: translateY(0) scale(0.97) rotate(0deg); opacity: 1; }
+            60% { transform: translateY(18px) scale(1.02) rotate(-10deg); opacity: 1; }
+            100% { transform: translateY(48px) scale(0.92) rotate(-18deg); opacity: 0; }
+        }
+
+        .spinner {
+            border: 5px solid #f3f3f3; border-top: 5px solid var(--primary);
+            border-radius: 50%; width: 40px; height: 40px;
+            animation: spin 1s linear infinite; margin-bottom: 15px;
+        }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+
+        /* Pause Screen - 萌萌可爱风 */
+        .pause-title {
+            font-size: 4rem; 
+            color: #fff; 
+            letter-spacing: 5px;
+            text-shadow: 0 6px 0 rgba(255,154,162,0.4), 0 12px 30px rgba(0,0,0,0.3); 
+            margin-bottom: 40px;
+            background: linear-gradient(180deg, #fff 0%, #FFD0E8 100%);
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+            filter: drop-shadow(0 4px 0 rgba(255,154,162,0.3));
+        }
+
+        /* Results - 萌萌可爱风 */
+        #result-song-display { 
+            font-size: 1.2rem; 
+            color: var(--primary); 
+            margin-top: -10px; 
+            margin-bottom: 10px; 
+            font-weight: bold; 
+            text-shadow: 0 2px 0 rgba(255,255,255,0.9);
+        }
+        .stat-row {
+            display: flex; 
+            justify-content: space-between; 
+            width: 320px;
+            margin: 8px 0; 
+            font-size: 1.1rem; 
+            border-bottom: 3px dotted rgba(255,154,162,0.3);
+            padding-bottom: 4px; 
+            color: #666;
+        }
+        .stat-val { 
+            font-weight: bold; 
+            font-family: 'M PLUS Rounded 1c'; 
+            color: var(--primary);
+        }
+        .timing-row { display: flex; width: 320px; justify-content: space-between; margin-top: 5px; }
+
+        .offset-controls { display: flex; gap: 5px; }
+        .mini-btn {
+            background: linear-gradient(180deg, #fff 0%, rgba(255,255,255,0.88) 100%);
+            border: 2px solid rgba(255,154,162,0.25);
+            border-radius: 12px;
+            padding: 4px 10px;
+            cursor: pointer;
+            color: rgba(0,0,0,0.62);
+            font-weight: 900;
+            font-family: 'M PLUS Rounded 1c', sans-serif;
+            transition: all 0.2s;
+            box-shadow: 0 6px 0 rgba(255,154,162,0.18), 0 10px 14px rgba(0,0,0,0.06);
+        }
+        .mini-btn:hover { transform: translateY(-2px); border-color: rgba(255,154,162,0.55); }
+        .mini-btn:active { transform: translateY(3px); box-shadow: 0 3px 0 rgba(255,154,162,0.16), 0 6px 10px rgba(0,0,0,0.06); }
+
+        /* Judgement palette (distinct, readable) */
+        .judge-marvelous {
+            color: #30E3CA;
+            background: linear-gradient(180deg, #30E3CA 0%, #58D5FF 100%);
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        .judge-perfect {
+            color: #FFBE3D;
+            background: linear-gradient(180deg, #FFBE3D 0%, #FF7BA5 100%);
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        .judge-great {
+            color: #7ADF6B;
+            background: linear-gradient(180deg, #7ADF6B 0%, #B5EAD7 100%);
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        .judge-good {
+            color: #5CA0FF;
+            background: linear-gradient(180deg, #5CA0FF 0%, #FFD8B5 100%);
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        .judge-bad {
+            color: #9B7EDE;
+            background: linear-gradient(180deg, #9B7EDE 0%, #FF9AA2 100%);
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        .judge-miss {
+            color: #FF5A78;
+            background: linear-gradient(180deg, #FF5A78 0%, #9C6EFF 100%);
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        /* HUD: small text needs solid high-contrast colors (gradient text becomes unreadable) */
+        .hud .judge-marvelous,
+        .hud .judge-perfect,
+        .hud .judge-great,
+        .hud .judge-good,
+        .hud .judge-bad,
+        .hud .judge-miss {
+            -webkit-text-fill-color: currentColor;
+            background: none;
+            -webkit-background-clip: border-box;
+            background-clip: border-box;
+            text-shadow: 0 1px 0 rgba(255,255,255,0.95), 0 2px 8px rgba(0,0,0,0.08);
+            font-weight: 900;
+            letter-spacing: 0.4px;
+        }
+        .hud .judge-marvelous { color: #2CB7A6; }
+        .hud .judge-perfect { color: #FF8A3D; }
+        .hud .judge-great { color: #37B24D; }
+        .hud .judge-good { color: #2F80ED; }
+        .hud .judge-bad { color: #9B7EDE; }
+        .hud .judge-miss { color: #E03131; }
+
+        /* When judging, we add a class to the container for animation */
+    #judge-text.judge-show #judge-main { animation: judgePop 220ms cubic-bezier(.2,.8,.2,1) both; }
+    #judge-text.judge-show #judge-timing { animation: judgePop 240ms cubic-bezier(.2,.8,.2,1) both; }
+    #judge-text.judge-miss-anim #judge-main { animation: judgeMissDrop 520ms cubic-bezier(.2,.9,.2,1) both; }
+    #judge-text.judge-miss-anim #judge-timing { animation: judgeMissDrop 560ms cubic-bezier(.2,.9,.2,1) both; }
+        .mini-btn:active { transform: translateY(3px); box-shadow: 0 3px 0 rgba(255,154,162,0.16), 0 6px 10px rgba(0,0,0,0.06); }
+
+        /* Mods Menu - 萌萌糖果风 */
+        .mod-container { display: flex; flex-wrap: wrap; gap: 15px; max-width: 600px; justify-content: center; }
+        .mod-btn {
+            width: 85px; height: 85px;
+            background: linear-gradient(180deg, rgba(255,255,255,0.98) 0%, rgba(255,218,193,0.4) 100%);
+            border: 4px solid rgba(255,154,162,0.2);
+            border-radius: 24px;
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            cursor: pointer; transition: all 0.22s cubic-bezier(.34,1.56,.64,1); color: var(--primary); font-weight: bold;
+            font-size: 0.9rem; box-shadow: 0 8px 0 rgba(255,154,162,0.2), 0 16px 28px rgba(255,154,162,0.1);
+            pointer-events: auto;
+        }
+        .mod-btn:hover { 
+            transform: translateY(-6px) scale(1.05) rotate(-2deg); 
+            border-color: rgba(181,234,215,0.8); 
+            box-shadow: 0 12px 0 rgba(181,234,215,0.25), 0 22px 35px rgba(181,234,215,0.15);
+        }
+        .mod-btn.active {
+            background: linear-gradient(180deg, rgba(255,154,162,0.95) 0%, rgba(255,218,193,0.9) 100%);
+            color: white;
+            border-color: rgba(255,255,255,0.6);
+            box-shadow: 0 8px 0 rgba(255,154,162,0.3), 0 16px 28px rgba(255,154,162,0.2);
+            transform: rotate(2deg);
+        }
+        .mod-icon { 
+            width: 36px; 
+            height: 36px; 
+            margin-bottom: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .mod-icon svg {
+            width: 100%;
+            height: 100%;
+            filter: drop-shadow(0 2px 3px rgba(0,0,0,0.15));
+        }
+        .mod-desc { 
+            margin-top: 20px; 
+            height: 30px; 
+            color: var(--primary); 
+            font-weight: bold; 
+            font-size: 1.1rem; 
+            text-shadow: 0 2px 0 rgba(255,255,255,0.9);
+        }
+        
+        /* Song BG Preview in Settings */
+        #bg-preview {
+            width: 100%;
+            height: 100px;
+            background: #eee;
+            border-radius: 10px;
+            margin-bottom: 10px;
+            background-size: cover;
+            background-position: center;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #888;
+            font-size: 0.8rem;
+        }
+    </style>
+</head>
+<body>
+
+<div id="floating-elements"></div>
+<div id="bg-dim-layer"></div>
+
+<div id="sakura-container"></div>
+
+<!-- HUD 移到 game-container 外面 -->
+<div class="hud" id="game-hud">
+    <!-- 判定统计 -->
+    <div class="hud-stats">
+        <div class="hud-stat-row"><span class="judge-marvelous">✦ Marv</span><span id="hud-marv">0</span></div>
+        <div class="hud-stat-row"><span class="judge-perfect">✦ Perf</span><span id="hud-perf">0</span></div>
+        <div class="hud-stat-row"><span class="judge-great">✦ Great</span><span id="hud-great">0</span></div>
+        <div class="hud-stat-row"><span class="judge-good">✦ Good</span><span id="hud-good">0</span></div>
+        <div class="hud-stat-row"><span class="judge-bad">✦ Bad</span><span id="hud-bad">0</span></div>
+        <div class="hud-stat-row"><span class="judge-miss">✦ Miss</span><span id="hud-miss">0</span></div>
+    </div>
+
+    <!-- 分数区域 -->
+    <div class="hud-score-area">
+        <div class="hud-score-row">
+            <span class="hud-label">SCORE</span>
+            <span class="hud-value" id="score-val">0000000</span>
+        </div>
+        <div class="hud-score-row">
+            <span class="hud-label">ACCURACY</span>
+            <span class="hud-value" id="acc-val">100.00%</span>
+        </div>
+    </div>
+
+    <div class="hud-song" id="hud-song">Song</div>
+    <div id="hud-bg-thumb" aria-hidden="true"></div>
+</div>
+
+<div id="game-container">
+    <canvas id="gameCanvas"></canvas>
+
+    <div id="fps-counter">FPS: 60</div>
+    
+    <div id="fever-text">FEVER!</div>
+    <div id="fever-bar-container"><div id="fever-fill"></div></div>
+    
+    <div id="speed-toast">Speed: 2.0</div>
+        <div id="offset-hint"></div>
+
+    <div id="combo-container">
+        <div id="combo-num">0</div>
+        <div id="combo-text">COMBO</div>
+    </div>
+    <div id="judge-text">
+        <div id="judge-main">PERFECT</div>
+        <div id="judge-timing"></div>
+    </div>
+
+    <div id="progress-bar-wrap" aria-hidden="true">
+        <div id="progress-bar"></div>
+    </div>
+
+    <div id="loading-overlay" class="ui-layer">
+        <div class="spinner"></div>
+        <div id="loading-text" style="color: #666; font-weight: bold;">Loading...</div>
+    </div>
+
+    <div id="pause-screen" class="ui-layer">
+        <div class="pause-title">PAUSED</div>
+        <div class="pause-controls">
+            <div class="pause-row"><span>Scroll Speed</span><span id="pause-speed-display">2.0</span></div>
+            <input type="range" id="pause-speed-slider" min="0.5" max="10.0" step="0.05" value="2.0" style="width: 220px;">
+            <div class="pause-row"><span>Hit Position</span><span id="pause-hitpos-display">85%</span></div>
+            <input type="range" id="pause-hitpos-slider" min="60" max="95" step="1" value="85" style="width: 220px;">
+            <div class="pause-row"><span>Lane Brightness</span><span id="pause-lane-display">100%</span></div>
+            <input type="range" id="pause-lane-slider" min="0" max="100" step="5" value="100" style="width: 220px;">
+        </div>
+        <button class="btn" id="resume-btn">RESUME</button>
+        <button class="btn btn-secondary" id="restart-btn">RESTART</button>
+        <button class="btn btn-secondary" id="quit-btn">QUIT</button>
+    </div>
+
+    <div id="start-screen" class="ui-layer modal-bg" style="background: linear-gradient(180deg, rgba(255,255,255,0.94) 0%, rgba(255,218,193,0.9) 100%); box-shadow: 0 20px 50px rgba(255,154,162,0.18);">
+        <h1>RHYTHM<br>CASCADE</h1>
+        <p style="color: #FFB7B2; margin-bottom: 20px; font-weight: bold;">🌸 Moekotori 🌸</p>
+        
+        <!-- Song Card (Instead of full BG) -->
+        <div class="song-card" id="song-card-bg">
+            <div class="song-card-info">
+                <div id="current-song-name" style="font-size: 1.1rem;">Procedural Beats</div>
+                <div style="font-size: 0.8rem; color: #888;">System</div>
+            </div>
+        </div>
+
+        <button class="btn" id="start-btn">START GAME</button>
+        <button class="btn btn-import" id="import-main-btn">IMPORT MAP (.osz)</button>
+
+        <div style="display: flex; gap: 10px; margin-top: 10px;">
+             <button class="btn btn-secondary" id="mods-btn" style="min-width: 150px;">MODS</button>
+             <button class="btn btn-secondary" id="settings-btn" style="min-width: 150px;">SETTINGS</button>
+        </div>
+        <input type="file" id="osz-input" accept=".osz,.zip" style="display:none">
+    </div>
+    
+    <div id="mods-screen" class="ui-layer">
+        <h2 style="color: var(--primary);">Gameplay Mods</h2>
+        <div class="mod-container" id="mod-grid">
+            <div class="mod-btn" data-mod="EZ"><div class="mod-icon"><svg viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="10" r="4"/><path d="M12 14c-4 0-7 2-7 4v2h14v-2c0-2-3-4-7-4z"/><path d="M9 6c0-1.5 1.5-3 3-3s3 1.5 3 3" fill="none" stroke="currentColor" stroke-width="1.5"/></svg></div>EZ</div>
+            <div class="mod-btn" data-mod="NF"><div class="mod-icon"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2L4 6v6c0 5.55 3.84 10.74 8 12 4.16-1.26 8-6.45 8-12V6l-8-4zm0 4l2 2-5 5-2-2 5-5z"/><path d="M9 12l3 3 5-5" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round"/></svg></div>NF</div>
+            <div class="mod-btn" data-mod="HT"><div class="mod-icon"><svg viewBox="0 0 24 24" fill="currentColor"><ellipse cx="12" cy="16" rx="8" ry="5"/><ellipse cx="12" cy="14" rx="6" ry="3.5" fill="#A8E6CF"/><circle cx="9" cy="13" r="1.5"/><circle cx="15" cy="13" r="1.5"/><ellipse cx="12" cy="8" rx="5" ry="4"/><circle cx="10" cy="7" r="1" fill="#fff"/><circle cx="14" cy="7" r="1" fill="#fff"/></svg></div>HT</div>
+            <div class="mod-btn" data-mod="HR"><div class="mod-icon"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 4l2 4h4l-3 3 1 5-4-2-4 2 1-5-3-3h4l2-4z"/><path d="M5 20l3-3m11 3l-3-3M12 14v6" stroke="currentColor" stroke-width="1.5" fill="none"/></svg></div>HR</div>
+            <div class="mod-btn" data-mod="SD"><div class="mod-icon"><svg viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="10" r="7"/><circle cx="9" cy="9" r="1.5" fill="#333"/><circle cx="15" cy="9" r="1.5" fill="#333"/><path d="M8.5 13c0 0 1.5 2 3.5 2s3.5-2 3.5-2" fill="none" stroke="#333" stroke-width="1.2"/><rect x="9" y="18" width="6" height="4" rx="1"/></svg></div>SD</div>
+            <div class="mod-btn" data-mod="PF"><div class="mod-icon"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l2.4 7.4h7.6l-6 4.6 2.3 7-6.3-4.6-6.3 4.6 2.3-7-6-4.6h7.6z"/><circle cx="12" cy="10" r="2" fill="#FFD93D"/></svg></div>PF</div>
+            <div class="mod-btn" data-mod="DT"><div class="mod-icon"><svg viewBox="0 0 24 24" fill="currentColor"><polygon points="5,4 19,12 5,20"/><line x1="18" y1="5" x2="18" y2="19" stroke="currentColor" stroke-width="3" stroke-linecap="round"/></svg></div>DT</div>
+            <div class="mod-btn" data-mod="NC"><div class="mod-icon"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 3c.5 0 1 .3 1.2.8l1.5 4.2c.2.5.7.8 1.2.8h4.4c.7 0 1 .9.4 1.3l-3.5 2.7c-.4.3-.6.9-.4 1.4l1.3 4.3c.2.7-.5 1.3-1.1.9l-3.6-2.6c-.4-.3-1-.3-1.4 0l-3.6 2.6c-.6.4-1.3-.2-1.1-.9l1.3-4.3c.2-.5 0-1.1-.4-1.4L4.3 10c-.6-.4-.3-1.3.4-1.3h4.4c.5 0 1-.3 1.2-.8l1.5-4.2c.2-.5.7-.7 1.2-.7z"/><path d="M6 5l1 2M18 5l-1 2M4 12h2M18 12h2" stroke="currentColor" stroke-width="1" fill="none"/></svg></div>NC</div>
+            <div class="mod-btn" data-mod="HD"><div class="mod-icon"><svg viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="12" r="9"/><circle cx="9" cy="10" r="2" fill="#fff"/><circle cx="15" cy="10" r="2" fill="#fff"/><circle cx="9" cy="10" r="1" fill="#333"/><circle cx="15" cy="10" r="1" fill="#333"/><path d="M8 15c0 0 2 2 4 2s4-2 4-2" fill="none" stroke="#fff" stroke-width="1.5" stroke-linecap="round"/><rect x="4" y="8" width="16" height="4" fill="currentColor"/></svg></div>HD</div>
+            <div class="mod-btn" data-mod="FI"><div class="mod-icon"><svg viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="5" r="3"/><path d="M12 8v8"/><path d="M8 12l8 4-8 4v-8z"/><path d="M4 20l4-4M20 20l-4-4" stroke="currentColor" stroke-width="1.5" fill="none"/></svg></div>FI</div>
+            <div class="mod-btn" data-mod="FL"><div class="mod-icon"><svg viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="12" r="10" fill="#333" opacity="0.8"/><circle cx="12" cy="12" r="4"/><path d="M12 4v2M12 18v2M4 12h2M18 12h2" stroke="currentColor" stroke-width="1.5"/><circle cx="12" cy="12" r="6" fill="none" stroke="currentColor" stroke-width="0.5" stroke-dasharray="2 2"/></svg></div>FL</div>
+            <div class="mod-btn" data-mod="AT"><div class="mod-icon"><svg viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="4" width="12" height="14" rx="2"/><circle cx="9" cy="9" r="1.5"/><circle cx="15" cy="9" r="1.5"/><rect x="9" y="13" width="6" height="2" rx="1"/><rect x="8" y="18" width="3" height="4" rx="1"/><rect x="13" y="18" width="3" height="4" rx="1"/><rect x="4" y="8" width="2" height="6" rx="1"/><rect x="18" y="8" width="2" height="6" rx="1"/></svg></div>AT</div>
+            <div class="mod-btn" data-mod="CR"><div class="mod-icon"><svg viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="12" r="10" fill="none" stroke="currentColor" stroke-width="2"/><path d="M12 6v6l4 4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><circle cx="12" cy="12" r="2"/><path d="M4 12h2M18 12h2M12 4v2M12 18v2" stroke="currentColor" stroke-width="1.5"/></svg></div>CR</div>
+            <div class="mod-btn" data-mod="MR"><div class="mod-icon"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M9 3L5 7l4 4V8h4v6h2V7a1 1 0 00-1-1h-5V3z"/><path d="M15 21l4-4-4-4v3h-4v-6H9v7a1 1 0 001 1h5v3z"/><rect x="11" y="10" width="2" height="4" fill="currentColor" opacity="0.5"/></svg></div>MR</div>
+            <div class="mod-btn" data-mod="NP"><div class="mod-icon"><svg viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="12" r="10" fill="none" stroke="currentColor" stroke-width="2"/><line x1="7" y1="7" x2="17" y2="17" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/><rect x="9" y="8" width="3" height="8" rx="0.5" fill="currentColor"/><rect x="13" y="8" width="3" height="8" rx="0.5" fill="currentColor"/></svg></div>NP</div>
+        </div>
+        <div id="custom-speed-container" style="display: none; margin: 15px 0; padding: 15px; background: linear-gradient(135deg, rgba(255,133,162,0.15), rgba(168,230,207,0.15)); border-radius: 16px; border: 2px solid var(--primary);">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                <span style="font-weight: 600; color: var(--primary);">Custom Speed</span>
+                <span id="cs-speed-display" style="font-weight: 700; color: var(--accent); font-size: 1.2em;">1.00x</span>
+            </div>
+            <input type="range" id="cs-speed-slider" min="0.5" max="2.0" step="0.05" value="1.0" style="width: 100%; accent-color: var(--primary);">
+            <div style="display: flex; justify-content: space-between; font-size: 0.75rem; color: #888; margin-top: 5px;">
+                <span>0.5x (Slow)</span>
+                <span>1.0x</span>
+                <span>2.0x (Fast)</span>
+            </div>
+        </div>
+        <div class="mod-desc" id="mod-description">Select mods to customize gameplay</div>
+        <button class="btn" id="mods-back-btn">BACK</button>
+    </div>
+
+    <div id="settings-screen" class="ui-layer modal-bg" style="background: linear-gradient(180deg, rgba(255,255,255,0.94) 0%, rgba(255,218,193,0.9) 100%); box-shadow: 0 20px 50px rgba(255,154,162,0.18);">
+        <h2 style="color: var(--primary);">Settings</h2>
+        
+        <div class="settings-scroll-area">
+            <!-- BG Preview -->
+            <div class="settings-group">
+                <div id="bg-preview">No Background Loaded</div>
+                <div class="setting-label" style="text-align: center;">Current Background</div>
+            </div>
+
+            <div class="settings-group">
+                <div class="setting-row">
+                    <span class="setting-label">Note Skin</span>
+                    <select id="skin-select">
+                        <option value="BAR">Bar (经典长条)</option>
+                        <option value="O2JAM">O2Jam Style</option>
+                        <option value="DJMAX">DJMAX Style</option>
+                        <option value="OSU">osu!mania</option>
+                        <option value="ARROW">DDR Arrow</option>
+                        <option value="CIRCLE">Circle (圆形)</option>
+                        <option value="DIAMOND">Diamond (菱形)</option>
+                        <option value="PILL">Pill (胶囊)</option>
+                        <option value="NEON">Neon (霓虹)</option>
+                        <option value="RETRO">Retro (像素)</option>
+                    </select>
+                </div>
+                <div class="setting-row" style="margin-top: 10px;">
+                    <span class="setting-label">Note Colors</span>
+                    <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px; width: 160px;">
+                        <input type="color" id="note-color-0" aria-label="Note Color 1">
+                        <input type="color" id="note-color-1" aria-label="Note Color 2">
+                        <input type="color" id="note-color-2" aria-label="Note Color 3">
+                        <input type="color" id="note-color-3" aria-label="Note Color 4">
+                    </div>
+                </div>
+                <div class="setting-row">
+                    <span class="setting-label">Scroll Speed</span>
+                    <span id="speed-display">2.0</span>
+                </div>
+                 <input type="range" id="speed-slider" min="0.5" max="10.0" step="0.05" value="2.0" style="width: 100%">
+                 <div style="font-size: 0.75rem; color: #aaa; margin-top: 5px;">Tip: Use Ctrl + +/- in game to adjust</div>
+                 
+                 <div class="setting-row" style="margin-top: 15px;">
+                    <span class="setting-label">Hit Position (判定线高度)</span>
+                    <span id="hitpos-display">85%</span>
+                </div>
+                <input type="range" id="hitpos-slider" min="60" max="95" step="1" value="85" style="width: 100%">
+                
+                <div class="setting-row" style="margin-top: 15px;">
+                    <span class="setting-label">Hide Judge Line (隐藏判定线)</span>
+                    <input type="checkbox" id="hidejudgeline-check">
+                </div>
+
+                <div class="setting-row" style="margin-top: 15px;">
+                    <span class="setting-label">Lane Brightness (轨道亮度)</span>
+                    <span id="lanebright-display">100%</span>
+                </div>
+                <input type="range" id="lanebright-slider" min="0" max="100" step="5" value="100" style="width: 100%">
+                <div class="setting-row" style="margin-top: 15px;">
+                    <span class="setting-label">Smooth Trail (视觉顺滑)</span>
+                    <span id="trail-display">6%</span>
+                </div>
+                <input type="range" id="trail-slider" min="0" max="30" step="1" value="6" style="width: 100%">
+            </div>
+
+            <div class="settings-group">
+                <div class="setting-row">
+                    <span class="setting-label">Judgment (判定难度)</span>
+                    <select id="judge-select">
+                        <option value="1">J1 (Easiest)</option>
+                        <option value="2">J2</option>
+                        <option value="3">J3</option>
+                        <option value="4" selected>J4 (Standard)</option>
+                        <option value="5">J5</option>
+                        <option value="6">J6</option>
+                        <option value="7">J7</option>
+                        <option value="8">J8 (Justice - Hardest)</option>
+                    </select>
+                </div>
+                <div class="setting-row">
+                    <span class="setting-label">Enable Fever Mode</span>
+                    <input type="checkbox" id="fever-check">
+                </div>
+                <div class="setting-row">
+                    <span class="setting-label">Show FPS</span>
+                    <input type="checkbox" id="fps-check">
+                </div>
+                <div class="setting-row">
+                    <span class="setting-label">FPS Cap (0 = VSync)</span>
+                    <span id="fpscap-display">120</span>
+                </div>
+                <input type="range" id="fpscap-slider" min="0" max="1000" step="10" value="120" style="width: 100%">
+                <div class="setting-row">
+                    <span class="setting-label">Enable Hit Sounds</span>
+                    <input type="checkbox" id="hitsound-check" checked>
+                </div>
+                <div class="setting-row">
+                    <span class="setting-label">Audio Offset (ms)</span>
+                    <span id="offset-display">0 ms</span>
+                </div>
+                <div class="setting-row">
+                    <div class="offset-controls">
+                        <button class="mini-btn" id="off-m5">-5</button>
+                        <button class="mini-btn" id="off-m1">-1</button>
+                    </div>
+                    <input type="range" id="offset-slider" min="-200" max="200" step="1" value="0" style="width: 120px">
+                    <div class="offset-controls">
+                        <button class="mini-btn" id="off-p1">+1</button>
+                        <button class="mini-btn" id="off-p5">+5</button>
+                    </div>
+                </div>
+                <div class="setting-row" style="margin-top: 10px;">
+                    <span class="setting-label">Offset Hint Toast</span>
+                    <input type="checkbox" id="offsethint-check" checked>
+                </div>
+                <div class="setting-row" style="margin-top: 10px;">
+                    <span class="setting-label">Audio Prewarm (降低首音延迟)</span>
+                    <input type="checkbox" id="prewarm-check" checked>
+                </div>
+                <div class="setting-row" style="margin-top: 10px;">
+                    <span class="setting-label">Auto Offset Suggest</span>
+                    <input type="checkbox" id="autooffset-check" checked>
+                </div>
+                <div class="setting-row" style="margin-top: 8px; justify-content: flex-start; gap: 10px;">
+                    <button class="mini-btn" id="autooffset-btn" type="button">Auto Set Offset</button>
+                    <span style="font-size: 0.75rem; color: #aaa;">Uses outputLatency (if supported)</span>
+                </div>
+                <div class="setting-row" style="margin-top: 15px;">
+                    <span class="setting-label">Long Note Tail Judgement</span>
+                    <input type="checkbox" id="tail-judge-check">
+                </div>
+                <div class="setting-row" style="margin-top: 15px;">
+                    <span class="setting-label">Background Dim</span>
+                    <span id="bgdim-display">0%</span>
+                </div>
+                <input type="range" id="bgdim-slider" min="0" max="80" step="5" value="0" style="width: 100%">
+            </div>
+
+            <div class="settings-group">
+                <div class="setting-label">Gameplay Keys (4K)</div>
+                <div class="keybind-container">
+                    <div class="key-input" id="key-0" data-col="0">D</div>
+                    <div class="key-input" id="key-1" data-col="1">F</div>
+                    <div class="key-input" id="key-2" data-col="2">J</div>
+                    <div class="key-input" id="key-3" data-col="3">K</div>
+                </div>
+                
+                <div class="setting-label" style="margin-top: 25px;">System Bindings</div>
+                <div class="sys-bind-row">
+                    <span>Quick Restart</span>
+                    <div class="sys-key-input" id="bind-restart">`</div>
+                </div>
+                <div class="sys-bind-row">
+                    <span>Toggle Combo</span>
+                    <div class="sys-key-input" id="bind-hide">\</div>
+                </div>
+            </div>
+            <button class="btn" id="back-btn">SAVE & BACK</button>
+        </div>
+    </div>
+
+    <div id="results-screen" class="ui-layer modal-bg">
+        <div id="result-bg-banner"></div>
+        <h1 style="font-size: 2.5rem; margin-bottom: 0;">COMPLETE</h1>
+        <div id="result-song-display">Song Title</div>
+    <div id="result-mods" style="color:#888; margin-bottom: 6px; font-weight:700;">Mods: None</div>
+        <div id="final-grade" style="font-size: 7rem; font-weight: 900; line-height: 1; margin: 10px 0; color: var(--primary); text-shadow: 5px 5px 0 #eee;">S</div>
+        
+        <div class="stat-row"><span>Score</span><span class="stat-val" id="end-score">0</span></div>
+        <div class="stat-row"><span>Max Combo</span><span class="stat-val" id="end-combo">0</span></div>
+        <div style="width: 320px; border-top: 2px solid #ddd; margin: 10px 0;"></div>
+        <div class="stat-row"><span class="judge-marvelous">Marvelous</span><span class="stat-val" id="end-marvelous">0</span></div>
+        <div class="stat-row"><span class="judge-perfect">Perfect</span><span class="stat-val" id="end-perfect">0</span></div>
+        <div class="stat-row"><span class="judge-great">Great</span><span class="stat-val" id="end-great">0</span></div>
+        <div class="stat-row"><span class="judge-good">Good</span><span class="stat-val" id="end-good">0</span></div>
+        <div class="stat-row"><span class="judge-bad">Bad</span><span class="stat-val" id="end-bad">0</span></div>
+        <div class="stat-row"><span class="judge-miss">Miss</span><span class="stat-val" id="end-miss">0</span></div>
+        <div style="width: 320px; border-top: 2px solid #ddd; margin: 10px 0;"></div>
+        <div class="timing-row">
+            <span class="timing-stat timing-fast">FAST: <span id="end-fast">0</span></span>
+            <span class="timing-stat timing-late">LATE: <span id="end-late">0</span></span>
+        </div>
+        
+        <button class="btn" id="restart-btn" style="margin-top: 20px;">PLAY AGAIN</button>
+        <button class="btn btn-secondary" id="results-menu-btn">MENU</button>
+    </div>
+</div>
+
+<!-- Live2D 看板娘 (右下角) -->
+<script src="https://fastly.jsdelivr.net/npm/live2d-widgets@1.0.0/dist/autoload.js"></script>
+
+<script>
+/**
+ * CONFIGURATION & STATE
+ */
+const Config = {
+    scrollSpeed: 2.0, 
+    baseSpeedPixels: 0.6, 
+    offset: 0,
+    hitPosition: 85, // % from top
+    keybinds: ['KeyD', 'KeyF', 'KeyJ', 'KeyK'],
+    keyDisplay: ['D', 'F', 'J', 'K'],
+    keybinds_sys: { restart: 'Backquote', hideCombo: 'Backslash' },
+    keyDisplay_sys: { restart: '`', hideCombo: '\\' },
+    skin: 'BAR', 
+    difficulty: 4, 
+    tailJudgement: false,
+    enableFever: true,
+    enableHitSounds: true,
+    enableOffsetHint: true,
+    backgroundDim: 0,
+    laneBrightness: 100,
+    maxFps: 120,
+    showFPS: false,
+    smoothTrail: 0.06,
+    noteColors: ['#FF9AA2', '#B5EAD7', '#B5EAD7', '#FF9AA2'],
+    audioPrewarm: true,
+    autoOffsetSuggest: true,
+    hideJudgeLine: false, // 隐藏判定线
+    customRate: 1.0, // 自定义速率 0.5-2.0
+    mods: {
+        EZ: false, NF: false, HT: false,
+        HR: false, SD: false, PF: false, DT: false, NC: false,
+        HD: false, FI: false, FL: false,
+        AT: false,
+        CR: false,  // Custom Rate 自定义速率
+        MR: false,  // Mirror 镜像
+        NP: false   // No Pause 禁止暂停
+    },
+
+    load() {
+        const saved = localStorage.getItem('rc_sakura_config_v11');
+        if (saved) {
+            const parsed = JSON.parse(saved);
+            Object.assign(this, parsed);
+        }
+        if (!Array.isArray(this.noteColors) || this.noteColors.length !== 4) {
+            this.noteColors = ['#FF9AA2', '#B5EAD7', '#B5EAD7', '#FF9AA2'];
+        }
+        if (typeof this.smoothTrail !== 'number' || this.smoothTrail < 0) this.smoothTrail = 0;
+        this.smoothTrail = Math.min(0.3, this.smoothTrail);
+        if (typeof this.audioPrewarm !== 'boolean') this.audioPrewarm = true;
+        if (typeof this.autoOffsetSuggest !== 'boolean') this.autoOffsetSuggest = true;
+        if (typeof this.customRate !== 'number') this.customRate = 1.0;
+        this.customRate = Math.max(0.5, Math.min(2.0, this.customRate));
+    },
+    save() {
+        localStorage.setItem('rc_sakura_config_v11', JSON.stringify(this));
+    }
+};
+Config.load();
+
+// ============================================================
+// 判定窗口系统 - 基于 Etterna/StepMania 标准
+// J1-J8 对应不同的判定严格度
+// J4 是标准难度，J1最宽松，J8最严格
+// ============================================================
+
+// Etterna 官方 J4 标准基准值 (单位: ms)
+// 判定窗口是对称的，±窗口值
+const BASE_WINDOWS = {
+    MARVELOUS: 22.5,   // ±22.5ms
+    PERFECT: 45,       // ±45ms
+    GREAT: 90,         // ±90ms
+    GOOD: 135,         // ±135ms
+    BAD: 157.5,        // ±157.5ms (新增)
+    MISS: 180          // ±180ms (超过此范围为Miss)
+};
+
+// J1-J8 判定难度缩放因子
+// 基于 Etterna 的真实数据
+// J4 = 1.0 (标准), J1 最宽松, J8 最严格
+const JUDGE_DIFFICULTY_SCALES = {
+    1: 1.50,   // J1: 非常宽松 (新手友好)
+    2: 1.33,   // J2: 宽松
+    3: 1.16,   // J3: 稍宽松
+    4: 1.00,   // J4: 标准 (Etterna默认)
+    5: 0.84,   // J5: 稍严格
+    6: 0.66,   // J6: 严格
+    7: 0.50,   // J7: 非常严格
+    8: 0.33    // J8: 极限严格 (顶尖玩家)
+};
+
+// 各判定等级的详细窗口值 (ms)
+// 根据 Etterna Wiki 和社区标准，新增 BAD 判定
+const JUDGE_WINDOWS_TABLE = {
+    // J1 - 超级宽松 (入门级)
+    1: { MARVELOUS: 33.75, PERFECT: 67.5, GREAT: 135, GOOD: 202.5, BAD: 236.25, MISS: 270 },
+    // J2 - 宽松
+    2: { MARVELOUS: 30.0, PERFECT: 60.0, GREAT: 120, GOOD: 180, BAD: 210, MISS: 240 },
+    // J3 - 稍宽松
+    3: { MARVELOUS: 26.1, PERFECT: 52.2, GREAT: 104.4, GOOD: 156.6, BAD: 182.7, MISS: 208.8 },
+    // J4 - 标准 (Etterna J4)
+    4: { MARVELOUS: 22.5, PERFECT: 45, GREAT: 90, GOOD: 135, BAD: 157.5, MISS: 180 },
+    // J5 - 稍严格
+    5: { MARVELOUS: 18.9, PERFECT: 37.8, GREAT: 75.6, GOOD: 113.4, BAD: 132.3, MISS: 151.2 },
+    // J6 - 严格 (高手级)
+    6: { MARVELOUS: 14.85, PERFECT: 29.7, GREAT: 59.4, GOOD: 89.1, BAD: 103.95, MISS: 118.8 },
+    // J7 - 非常严格 (竞技级)
+    7: { MARVELOUS: 11.25, PERFECT: 22.5, GREAT: 45, GOOD: 67.5, BAD: 78.75, MISS: 90 },
+    // J8 - 极限 (顶尖玩家)
+    8: { MARVELOUS: 7.425, PERFECT: 14.85, GREAT: 29.7, GOOD: 44.55, BAD: 51.975, MISS: 59.4 }
+};
+
+// 判定窗口描述（用于UI显示）
+const JUDGE_DESCRIPTIONS = {
+    1: "J1 - 超级宽松 (入门)",
+    2: "J2 - 宽松",
+    3: "J3 - 稍宽松", 
+    4: "J4 - 标准",
+    5: "J5 - 稍严格",
+    6: "J6 - 严格",
+    7: "J7 - 竞技级",
+    8: "J8 - 极限"
+};
+
+const DEFAULT_NOTE_COLORS = ['#FF9AA2', '#B5EAD7', '#B5EAD7', '#FF9AA2'];
+const INPUT_BUFFER_MS = 35;  // 进一步缩短，提高响应
+const OFFSET_HINT_SAMPLES = 18;
+const OFFSET_HINT_THRESHOLD = 8;
+const MIN_KEY_INTERVAL_MS = 12;  // 约83Hz，支持更极限的连打
+
+// 预计算的判定窗口缓存
+let cachedWindows = null;
+let cachedWindowsKey = '';
+
+// 对象池 - 减少 GC 压力
+const ParticlePool = {
+    pool: [],
+    maxSize: 200,
+    
+    get() {
+        if (this.pool.length > 0) {
+            return this.pool.pop();
+        }
+        return { x: 0, y: 0, vx: 0, vy: 0, life: 0, decay: 0, size: 0, color: '', judge: '' };
+    },
+    
+    release(particle) {
+        if (this.pool.length < this.maxSize) {
+            this.pool.push(particle);
+        }
+    }
+};
+
+const HitErrorPool = {
+    pool: [],
+    maxSize: 50,
+    
+    get() {
+        if (this.pool.length > 0) {
+            return this.pool.pop();
+        }
+        return { diff: 0, timestamp: 0, grade: '' };
+    },
+    
+    release(mark) {
+        if (this.pool.length < this.maxSize) {
+            this.pool.push(mark);
+        }
+    }
+};
+
+const getNoteColors = () => {
+    if (!Array.isArray(Config.noteColors)) return DEFAULT_NOTE_COLORS;
+    return Config.noteColors.map((c, i) => c || DEFAULT_NOTE_COLORS[i] || DEFAULT_NOTE_COLORS[0]);
+};
+
+// 带缓存的判定窗口获取
+// 使用预定义的判定表，更精确
+function getWindows(jLevel) {
+    // 确保 jLevel 在 1-8 范围内
+    const level = Math.max(1, Math.min(8, Math.round(jLevel)));
+    const key = `${level}-${Config.mods.HR}-${Config.mods.EZ}`;
+    
+    if (cachedWindowsKey === key && cachedWindows) {
+        return cachedWindows;
+    }
+    
+    // 从预定义表获取基准窗口
+    const baseWindows = JUDGE_WINDOWS_TABLE[level];
+    
+    // 应用 Mod 修正
+    let modScale = 1.0;
+    if (Config.mods.HR) modScale *= 0.8;  // Hard Rock: 窗口缩小20%
+    if (Config.mods.EZ) modScale *= 1.2;  // Easy: 窗口放大20%
+
+    cachedWindows = {
+        MARVELOUS: baseWindows.MARVELOUS * modScale,
+        PERFECT: baseWindows.PERFECT * modScale,
+        GREAT: baseWindows.GREAT * modScale,
+        GOOD: baseWindows.GOOD * modScale,
+        BAD: baseWindows.BAD * modScale,
+        MISS: baseWindows.MISS * modScale
+    };
+    cachedWindowsKey = key;
+    return cachedWindows;
+}
+
+// 获取当前判定难度的描述
+function getJudgeDescription(jLevel) {
+    const level = Math.max(1, Math.min(8, Math.round(jLevel)));
+    return JUDGE_DESCRIPTIONS[level] || JUDGE_DESCRIPTIONS[4];
+}
+
+// 获取当前判定窗口的详细信息（用于调试/显示）
+function getWindowsInfo(jLevel) {
+    const windows = getWindows(jLevel);
+    return {
+        level: Math.max(1, Math.min(8, Math.round(jLevel))),
+        description: getJudgeDescription(jLevel),
+        windows: windows,
+        modifiers: {
+            HR: Config.mods.HR,
+            EZ: Config.mods.EZ
+        }
+    };
+}
+
+// 清除判定窗口缓存（当难度或mod改变时调用）
+function invalidateWindowsCache() {
+    cachedWindows = null;
+    cachedWindowsKey = '';
+}
+
+// ============================================================
+// 高性能判定引擎 - WASM风格的纯JS实现
+// 使用 TypedArray + 位运算，零GC，极致性能
+// ============================================================
+const HitEngine = {
+    // Note 状态位掩码
+    FLAG_PROCESSED: 1,      // bit 0: 已处理
+    FLAG_HIT: 2,            // bit 1: 已命中
+    FLAG_HOLD: 4,           // bit 2: 是长条
+    FLAG_HOLDING: 8,        // bit 3: 正在按住
+    FLAG_HOLD_HIT: 16,      // bit 4: 长条头已命中
+    
+    // 判定等级常量
+    JUDGE_MISS: 0,
+    JUDGE_BAD: 1,
+    JUDGE_GOOD: 2,
+    JUDGE_GREAT: 3,
+    JUDGE_PERFECT: 4,
+    JUDGE_MARVELOUS: 5,
+    
+    // TypedArray 存储
+    noteTimes: null,        // Float64Array - note 时间
+    noteEndTimes: null,     // Float64Array - 长条结束时间
+    noteCols: null,         // Uint8Array - 列号
+    noteFlags: null,        // Uint8Array - 状态标志
+    noteCount: 0,
+    
+    // 列索引 (每列的 note 索引范围)
+    colStart: new Uint32Array(4),   // 每列起始索引
+    colEnd: new Uint32Array(4),     // 每列结束索引
+    colCursor: new Uint32Array(4),  // 每列当前游标
+    
+    // 预分配的结果对象（避免GC）
+    result: { grade: 0, timing: 0, noteIdx: -1 },
+    
+    // 初始化引擎
+    init(maxNotes = 10000) {
+        this.noteTimes = new Float64Array(maxNotes);
+        this.noteEndTimes = new Float64Array(maxNotes);
+        this.noteCols = new Uint8Array(maxNotes);
+        this.noteFlags = new Uint8Array(maxNotes);
+        this.noteCount = 0;
+    },
+    
+    // 从游戏 notes 数组构建高性能数据结构
+    buildFromNotes(notes) {
+        // 按列分组排序
+        const byCol = [[], [], [], []];
+        for (let i = 0; i < notes.length; i++) {
+            const n = notes[i];
+            byCol[n.col].push({
+                time: n.time,
+                endTime: n.endTime || n.time,
+                isHold: n.isHold,
+                originalIdx: i
+            });
+        }
+        
+        // 每列按时间排序
+        for (let col = 0; col < 4; col++) {
+            byCol[col].sort((a, b) => a.time - b.time);
+        }
+        
+        // 写入 TypedArray
+        let idx = 0;
+        for (let col = 0; col < 4; col++) {
+            this.colStart[col] = idx;
+            for (const n of byCol[col]) {
+                this.noteTimes[idx] = n.time;
+                this.noteEndTimes[idx] = n.endTime;
+                this.noteCols[idx] = col;
+                this.noteFlags[idx] = n.isHold ? this.FLAG_HOLD : 0;
+                idx++;
+            }
+            this.colEnd[col] = idx;
+            this.colCursor[col] = this.colStart[col];
+        }
+        this.noteCount = idx;
+    },
+    
+    // 重置状态（重新开始游戏时）
+    reset() {
+        for (let i = 0; i < this.noteCount; i++) {
+            // 保留 FLAG_HOLD，清除其他标志
+            this.noteFlags[i] &= this.FLAG_HOLD;
+        }
+        for (let col = 0; col < 4; col++) {
+            this.colCursor[col] = this.colStart[col];
+        }
+    },
+    
+    // 核心判定函数 - 零分配，纯数值运算
+    // 返回值通过 this.result 传递，避免创建对象
+    checkHit(col, currentTime, windows) {
+        const start = this.colCursor[col];
+        const end = this.colEnd[col];
+        
+        let bestIdx = -1;
+        let bestDiff = 999999;
+        
+        // 线性搜索当前窗口内的 note
+        for (let i = start; i < end; i++) {
+            const flags = this.noteFlags[i];
+            
+            // 跳过已处理或长条已命中
+            if (flags & this.FLAG_PROCESSED) continue;
+            if ((flags & this.FLAG_HOLD) && (flags & this.FLAG_HOLD_HIT)) continue;
+            
+            const noteTime = this.noteTimes[i];
+            const diff = noteTime - currentTime;
+            
+            // 太远了，后面的也都太远
+            if (diff > windows.MISS) break;
+            
+            // 已经过了判定窗口
+            if (diff < -windows.MISS) {
+                // 更新游标跳过这个
+                if (i === this.colCursor[col]) {
+                    this.colCursor[col] = i + 1;
+                }
+                continue;
+            }
+            
+            const absDiff = diff < 0 ? -diff : diff;
+            if (absDiff < bestDiff) {
+                bestDiff = absDiff;
+                bestIdx = i;
+                // MARVELOUS 可以提前退出
+                if (absDiff <= windows.MARVELOUS) break;
+            }
+        }
+        
+        if (bestIdx === -1) {
+            this.result.grade = -1;
+            this.result.noteIdx = -1;
+            return this.result;
+        }
+        
+        // 计算判定等级
+        let grade = this.JUDGE_MISS;
+        if (bestDiff <= windows.MARVELOUS) grade = this.JUDGE_MARVELOUS;
+        else if (bestDiff <= windows.PERFECT) grade = this.JUDGE_PERFECT;
+        else if (bestDiff <= windows.GREAT) grade = this.JUDGE_GREAT;
+        else if (bestDiff <= windows.GOOD) grade = this.JUDGE_GOOD;
+        else if (bestDiff <= windows.BAD) grade = this.JUDGE_BAD;
+        
+        // 计算 timing (正=FAST, 负=LATE)
+        const diff = this.noteTimes[bestIdx] - currentTime;
+        
+        // 更新 note 状态
+        const flags = this.noteFlags[bestIdx];
+        if (flags & this.FLAG_HOLD) {
+            // 长条
+            if (grade === this.JUDGE_MISS) {
+                this.noteFlags[bestIdx] |= this.FLAG_PROCESSED;
+            } else {
+                this.noteFlags[bestIdx] |= this.FLAG_HOLD_HIT | this.FLAG_HOLDING | this.FLAG_HIT;
+            }
+        } else {
+            // 普通 note
+            this.noteFlags[bestIdx] |= this.FLAG_PROCESSED;
+            if (grade !== this.JUDGE_MISS) {
+                this.noteFlags[bestIdx] |= this.FLAG_HIT;
+            }
+        }
+        
+        this.result.grade = grade;
+        this.result.timing = diff;
+        this.result.noteIdx = bestIdx;
+        return this.result;
+    },
+    
+    // 检查长条释放
+    checkRelease(col, currentTime, windows) {
+        const start = this.colStart[col];
+        const end = this.colEnd[col];
+        
+        for (let i = start; i < end; i++) {
+            const flags = this.noteFlags[i];
+            
+            // 找正在按住的长条
+            if ((flags & this.FLAG_HOLDING) && !(flags & this.FLAG_PROCESSED)) {
+                // 取消按住状态
+                this.noteFlags[i] &= ~this.FLAG_HOLDING;
+                
+                const endTime = this.noteEndTimes[i];
+                const diff = currentTime - endTime;
+                
+                // 返回是否提前松开
+                this.result.noteIdx = i;
+                this.result.timing = diff;
+                
+                if (diff < -windows.GOOD) {
+                    // 太早松开 = MISS
+                    this.noteFlags[i] |= this.FLAG_PROCESSED;
+                    this.result.grade = this.JUDGE_MISS;
+                } else {
+                    // 正常松开
+                    this.noteFlags[i] |= this.FLAG_PROCESSED;
+                    this.result.grade = this.JUDGE_PERFECT;
+                }
+                return this.result;
+            }
+        }
+        
+        this.result.noteIdx = -1;
+        return this.result;
+    },
+    
+    // 批量检查 Auto-MISS
+    checkAutoMiss(currentTime, missWindow) {
+        const missedNotes = [];
+        
+        for (let col = 0; col < 4; col++) {
+            const start = this.colCursor[col];
+            const end = this.colEnd[col];
+            
+            for (let i = start; i < end; i++) {
+                const flags = this.noteFlags[i];
+                if (flags & this.FLAG_PROCESSED) continue;
+                if ((flags & this.FLAG_HOLD) && (flags & this.FLAG_HOLD_HIT)) continue;
+                
+                const noteTime = this.noteTimes[i];
+                
+                if (currentTime > noteTime + missWindow) {
+                    this.noteFlags[i] |= this.FLAG_PROCESSED;
+                    missedNotes.push({ col: col, idx: i });
+                    
+                    // 更新游标
+                    if (i === this.colCursor[col]) {
+                        this.colCursor[col] = i + 1;
+                    }
+                } else {
+                    // 后面的还没到
+                    break;
+                }
+            }
+        }
+        
+        return missedNotes;
+    },
+    
+    // 获取 note 状态（供渲染使用）
+    isProcessed(idx) { return (this.noteFlags[idx] & this.FLAG_PROCESSED) !== 0; },
+    isHit(idx) { return (this.noteFlags[idx] & this.FLAG_HIT) !== 0; },
+    isHolding(idx) { return (this.noteFlags[idx] & this.FLAG_HOLDING) !== 0; },
+    isHold(idx) { return (this.noteFlags[idx] & this.FLAG_HOLD) !== 0; },
+    isHoldHit(idx) { return (this.noteFlags[idx] & this.FLAG_HOLD_HIT) !== 0; },
+    getTime(idx) { return this.noteTimes[idx]; },
+    getEndTime(idx) { return this.noteEndTimes[idx]; },
+    getCol(idx) { return this.noteCols[idx]; }
+};
+
+// 初始化引擎
+HitEngine.init(15000);
+
+class GameEngine {
+    constructor() {
+        this.canvas = document.getElementById('gameCanvas');
+        // 高性能Canvas设置: desynchronized减少合成延迟
+        this.ctx = this.canvas.getContext('2d', { 
+            alpha: false,
+            desynchronized: true,  // 减少渲染延迟 (现代浏览器)
+            willReadFrequently: false
+        });
+        this.ctx.imageSmoothingEnabled = true;
+        this.ctx.imageSmoothingQuality = 'high';
+        this.ctx.lineJoin = 'round';
+        this.ctx.lineCap = 'round';
+        
+        const AudioContext = window.AudioContext || window.webkitAudioContext;
+        // 更低延迟的音频设置
+        this.audioCtx = new AudioContext({ 
+            latencyHint: 'interactive',
+            sampleRate: 48000  // 标准化采样率
+        });
+        
+        this.resize();
+        window.addEventListener('resize', () => this.resize());
+
+        this.gameState = 'MENU'; 
+        this.notes = []; 
+        this.audioBuffer = null;
+        this.audioSource = null;
+        this.songMetadata = { title: "Procedural Beats", artist: "System" };
+        this.hitSounds = {}; 
+        this.currentBgUrl = 'skin/menu-background.jpg';
+    this.lastFrameTs = 0;
+        this.skinImages = {
+            osu: {
+                note: this.loadImage('skin/mania/mania-hit0.png'),
+                noteActive: this.loadImage('skin/mania/mania-hit300.png'),
+                holdBody: this.loadImage('skin/mania/mania-stage-light.png')
+            }
+        };
+        
+        this.startTime = 0;
+        this.activeKeys = [false, false, false, false];
+        this.keyEffects = [0, 0, 0, 0];
+        this.hideCombo = false;
+        
+        this.feverActive = false;
+        this.feverEndTime = 0;
+    this.finished = false;
+    this.songEndTimeMs = 0;
+        
+    this.stats = { score: 0, combo: 0, maxCombo: 0, marvelous: 0, perfect: 0, great: 0, good: 0, bad: 0, miss: 0, fast: 0, late: 0 };
+    this.receptorScale = [1, 1, 1, 1];
+    this.receptorGlow = [0, 0, 0, 0];
+    this.hitParticles = []; // osu mania风格击中粒子
+    this.keyBufferExpiry = [0, 0, 0, 0];
+    this.inputBufferMs = INPUT_BUFFER_MS;
+    this.timingSamples = [];
+    this.offsetHintTimer = null;
+    // Hit Error Bar 数据
+    this.hitErrorMarks = []; // 存储最近的打击误差 { time, diff, timestamp }
+    
+    // 高精度输入系统
+    this.lastKeyPressTime = [0, 0, 0, 0];  // 每列的上次按键时间 (performance.now)
+    this.keyPressTimestamp = [0, 0, 0, 0]; // 按键按下时的精确时间戳
+    this.notesByCol = [[], [], [], []];    // 按列索引的 note，加速查找
+    this.colNextIndex = [0, 0, 0, 0];      // 每列下一个待判定的 note 索引
+    
+    // 输入队列 - 防止高速输入丢失
+    this.inputQueue = [];
+    this.maxInputQueueSize = 32;  // 最多缓存32个输入事件
+    
+    // 帧时间优化
+    this.lastFrameTime = 0;
+    this.frameTimeAccumulator = 0;
+        
+        this.frameCount = 0;
+        this.lastFpsTime = 0;
+        this.fpsEl = document.getElementById('fps-counter');
+
+        this.ui = {
+            screens: {
+                start: document.getElementById('start-screen'),
+                settings: document.getElementById('settings-screen'),
+                mods: document.getElementById('mods-screen'),
+                results: document.getElementById('results-screen'),
+                hud: document.getElementById('game-hud'),
+                loading: document.getElementById('loading-overlay'),
+                pause: document.getElementById('pause-screen')
+            },
+            elements: {
+                score: document.getElementById('score-val'),
+                acc: document.getElementById('acc-val'),
+                comboContainer: document.getElementById('combo-container'),
+                comboNum: document.getElementById('combo-num'),
+                judge: document.getElementById('judge-text'),
+                judgeMain: document.getElementById('judge-main'),
+                judgeTiming: document.getElementById('judge-timing'),
+                progressWrap: document.getElementById('progress-bar-wrap'),
+                progressBar: document.getElementById('progress-bar'),
+                songName: document.getElementById('current-song-name'),
+                speedToast: document.getElementById('speed-toast'),
+                offsetHint: document.getElementById('offset-hint'),
+                feverText: document.getElementById('fever-text'),
+                feverBar: document.getElementById('fever-bar-container'),
+                feverFill: document.getElementById('fever-fill'),
+                resultSongDisplay: document.getElementById('result-song-display'),
+                offsetSlider: document.getElementById('offset-slider'),
+                offsetDisplay: document.getElementById('offset-display'),
+                prewarmCheck: document.getElementById('prewarm-check'),
+                autoOffsetCheck: document.getElementById('autooffset-check'),
+                autoOffsetBtn: document.getElementById('autooffset-btn'),
+                hitPosSlider: document.getElementById('hitpos-slider'),
+                hitPosDisplay: document.getElementById('hitpos-display'),
+                fpsCapSlider: document.getElementById('fpscap-slider'),
+                fpsCapDisplay: document.getElementById('fpscap-display'),
+                laneBrightSlider: document.getElementById('lanebright-slider'),
+                laneBrightDisplay: document.getElementById('lanebright-display'),
+                trailSlider: document.getElementById('trail-slider'),
+                trailDisplay: document.getElementById('trail-display'),
+                bgDimSlider: document.getElementById('bgdim-slider'),
+                bgDimDisplay: document.getElementById('bgdim-display'),
+                noteColorInputs: [
+                    document.getElementById('note-color-0'),
+                    document.getElementById('note-color-1'),
+                    document.getElementById('note-color-2'),
+                    document.getElementById('note-color-3'),
+                ],
+                pauseSpeedSlider: document.getElementById('pause-speed-slider'),
+                pauseSpeedDisplay: document.getElementById('pause-speed-display'),
+                pauseHitposSlider: document.getElementById('pause-hitpos-slider'),
+                pauseHitposDisplay: document.getElementById('pause-hitpos-display'),
+                pauseLaneSlider: document.getElementById('pause-lane-slider'),
+                pauseLaneDisplay: document.getElementById('pause-lane-display'),
+                // Live Stats
+                hudMarv: document.getElementById('hud-marv'),
+                hudPerf: document.getElementById('hud-perf'),
+                hudGreat: document.getElementById('hud-great'),
+                hudGood: document.getElementById('hud-good'),
+                hudBad: document.getElementById('hud-bad'),
+                hudMiss: document.getElementById('hud-miss'),
+                hudSong: document.getElementById('hud-song')
+            }
+        };
+        
+        this.modDescriptions = {
+            EZ: "Easy: Larger hit windows (x1.2)", NF: "No Fail: You cannot fail", HT: "Half Time: 0.75x Speed",
+            HR: "Hard Rock: Smaller hit windows (x0.8)", SD: "Sudden Death: Miss = Fail", PF: "Perfect: Only Marvelous/Perfect allowed",
+            DT: "Double Time: 1.5x Speed", NC: "Nightcore: 1.5x Speed + Pitch", HD: "Hidden: Notes fade out",
+            FI: "Fade In: Notes fade in", FL: "Flashlight: Restricted view", AT: "Auto: Watch CPU play",
+            CR: "Custom Rate: Adjustable speed (0.5x~2.0x)",
+            MR: "Mirror: Flip notes left-right (镜像翻转)",
+            NP: "No Pause: ESC exits game instead of pause (禁止暂停)"
+        };
+
+        this.bindEvents();
+        this.bindModEvents();
+        this.loadDefaultHitSounds(); 
+        this.loop = this.loop.bind(this);
+        requestAnimationFrame(this.loop);
+        
+        this.generateProceduralMap();
+        this.applySettings();
+        this.repositionHud();
+        
+        // 使用 requestIdleCallback 预处理非关键任务
+        this.scheduleIdleTasks();
+    }
+    
+    // 空闲时间预处理
+    scheduleIdleTasks() {
+        const idleCallback = window.requestIdleCallback || ((cb) => setTimeout(cb, 1));
+        
+        idleCallback((deadline) => {
+            // 预热AudioContext
+            if (this.audioCtx.state === 'suspended') {
+                document.addEventListener('click', () => this.audioCtx.resume(), { once: true });
+            }
+            
+            // 预计算常用判定窗口
+            if (deadline.timeRemaining() > 5) {
+                for (const diff of [3, 4, 5, 6, 7, 8]) {
+                    getWindows(diff);
+                }
+            }
+            
+            // 预热GC - 分配后立即释放一些小对象
+            if (deadline.timeRemaining() > 2) {
+                const warmup = [];
+                for (let i = 0; i < 100; i++) warmup.push({ x: 0, y: 0 });
+                warmup.length = 0;
+            }
+        }, { timeout: 2000 });
+    }
+
+    // --- Audio ---
+    async loadDefaultHitSounds() {
+        const createOsc = (freq, type, dur, vol) => {
+            const sr = this.audioCtx.sampleRate;
+            const len = sr * dur;
+            const buf = this.audioCtx.createBuffer(1, len, sr);
+            const data = buf.getChannelData(0);
+            for(let i=0; i<len; i++) {
+                // Envelope
+                const t = i/len;
+                const env = 1 - t; 
+                data[i] = Math.sin(i * 2 * Math.PI * freq / sr) * vol * env * env;
+            }
+            return buf;
+        };
+        // Simple, robust sounds
+        this.hitSounds['normal'] = createOsc(1000, 'sine', 0.1, 0.5); 
+        this.hitSounds['whistle'] = createOsc(1500, 'sine', 0.1, 0.4); 
+        this.hitSounds['finish'] = createOsc(500, 'sine', 0.2, 0.6); 
+        this.hitSounds['clap'] = createOsc(1200, 'triangle', 0.05, 0.4); 
+        
+        // 音频播放池 - 减少重复创建GainNode开销
+        this.audioPool = [];
+        this.audioPoolSize = 8;
+        this.audioPoolIndex = 0;
+        for (let i = 0; i < this.audioPoolSize; i++) {
+            const gain = this.audioCtx.createGain();
+            gain.connect(this.audioCtx.destination);
+            this.audioPool.push({ gain, src: null });
+        }
+    }
+    
+    playHitSound(type) {
+        if(!Config.enableHitSounds) return;
+        let buf = this.hitSounds['normal'];
+        if(type === 'MARVELOUS') buf = this.hitSounds['whistle'];
+        else if(type === 'GREAT') buf = this.hitSounds['clap'];
+        
+        if(buf) {
+            // 使用音频池减少延迟
+            const poolItem = this.audioPool[this.audioPoolIndex];
+            this.audioPoolIndex = (this.audioPoolIndex + 1) % this.audioPoolSize;
+            
+            // 停止之前的音源
+            if (poolItem.src) {
+                try { poolItem.src.stop(); } catch(e) {}
+            }
+            
+            const src = this.audioCtx.createBufferSource();
+            src.buffer = buf;
+            poolItem.gain.gain.value = 1.0;
+            src.connect(poolItem.gain);
+            src.start(0);
+            poolItem.src = src;
+        }
+    }
+    
+    async loadHitSoundFromZip(zip, name, targetKey) {
+        const candidates = [name + '.wav', name + '.mp3', name + '.ogg'];
+        for(let c of candidates) {
+            let file = zip.file(c);
+            if(!file) {
+                const match = Object.keys(zip.files).find(k => k.toLowerCase() === c.toLowerCase());
+                if(match) file = zip.file(match);
+            }
+            if(file) {
+                try {
+                    const ab = await file.async("arraybuffer");
+                    this.hitSounds[targetKey] = await this.audioCtx.decodeAudioData(ab);
+                    return;
+                } catch(e) { console.error("Sound load fail", e); }
+            }
+        }
+    }
+
+    resize() {
+        const container = document.getElementById('game-container');
+        this.canvas.width = container.clientWidth;
+        this.canvas.height = container.clientHeight;
+        this.colWidth = this.canvas.width / 4;
+        this.hitY = this.canvas.height * (Config.hitPosition / 100);
+        this.repositionHud();
+    }
+    
+    applySettings() {
+        this.fpsEl.style.display = Config.showFPS ? 'block' : 'none';
+        this.ui.elements.offsetDisplay.innerText = Config.offset + ' ms';
+        this.ui.elements.offsetSlider.value = Config.offset;
+        
+        this.ui.elements.hitPosSlider.value = Config.hitPosition;
+        this.ui.elements.hitPosDisplay.innerText = Config.hitPosition + '%';
+    if (this.ui.elements.fpsCapSlider) this.ui.elements.fpsCapSlider.value = Config.maxFps;
+    if (this.ui.elements.fpsCapDisplay) this.ui.elements.fpsCapDisplay.innerText = Config.maxFps === 0 ? 'VSync' : Config.maxFps;
+    if (this.ui.elements.laneBrightSlider) this.ui.elements.laneBrightSlider.value = Config.laneBrightness;
+    if (this.ui.elements.laneBrightDisplay) this.ui.elements.laneBrightDisplay.innerText = Config.laneBrightness + '%';
+        if (this.ui.elements.bgDimSlider) this.ui.elements.bgDimSlider.value = Config.backgroundDim;
+        if (this.ui.elements.bgDimDisplay) this.ui.elements.bgDimDisplay.innerText = Config.backgroundDim + '%';
+        this.applyBackgroundDim();
+        this.hitY = this.canvas.height * (Config.hitPosition / 100);
+    this.syncPauseControls();
+        
+        document.querySelectorAll('.mod-btn').forEach(btn => {
+            const mod = btn.dataset.mod;
+            if(Config.mods[mod]) btn.classList.add('active');
+            else btn.classList.remove('active');
+        });
+        
+        // Update custom speed slider visibility and value
+        const csContainer = document.getElementById('custom-speed-container');
+        const csSlider = document.getElementById('cs-speed-slider');
+        const csDisplay = document.getElementById('cs-speed-display');
+        if (csContainer) csContainer.style.display = Config.mods.CR ? 'block' : 'none';
+        if (csSlider) csSlider.value = Config.customRate;
+        if (csDisplay) csDisplay.innerText = Config.customRate.toFixed(2) + 'x';
+
+        Config.keyDisplay.forEach((k, i) => { document.getElementById(`key-${i}`).innerText = k; });
+        document.getElementById('bind-restart').innerText = Config.keyDisplay_sys.restart;
+        document.getElementById('bind-hide').innerText = Config.keyDisplay_sys.hideCombo;
+    }
+
+    applyBackgroundDim() {
+        const layer = document.getElementById('bg-dim-layer');
+        if (!layer) return;
+        const alpha = Math.min(100, Math.max(0, Config.backgroundDim)) / 100;
+        layer.style.background = `rgba(0,0,0,${alpha})`;
+    }
+
+    loadImage(src) {
+        const img = new Image();
+        img.src = src;
+        img.onerror = () => console.warn('Failed to load skin asset', src);
+        return img;
+    }
+
+    updateBackgroundPreview() {
+        const hudThumb = document.getElementById('hud-bg-thumb');
+        const banner = document.getElementById('result-bg-banner');
+        if (hudThumb) hudThumb.style.backgroundImage = this.currentBgUrl ? `url('${this.currentBgUrl}')` : '';
+        if (banner) banner.style.backgroundImage = this.currentBgUrl ? `url('${this.currentBgUrl}')` : '';
+    }
+
+    tintColor(hex, factor) {
+        const m = hex.match(/^#?([\da-f]{6})$/i);
+        if (!m) return hex;
+        const intVal = parseInt(m[1], 16);
+        let r = (intVal >> 16) & 255;
+        let g = (intVal >> 8) & 255;
+        let b = intVal & 255;
+        r = Math.round(r * factor);
+        g = Math.round(g * factor);
+        b = Math.round(b * factor);
+        const toHex = (v) => v.toString(16).padStart(2, '0');
+        return `#${toHex(r)}${toHex(g)}${toHex(b)}`;
+    }
+
+    bindEvents() {
+        const $ = (id) => document.getElementById(id);
+        $('start-btn').addEventListener('click', () => this.start());
+        $('restart-btn').addEventListener('click', () => this.start());
+        $('results-menu-btn').addEventListener('click', () => this.showScreen('start'));
+        $('settings-btn').addEventListener('click', () => { this.updateSettingsUI(); this.showScreen('settings'); });
+        $('mods-btn').addEventListener('click', () => { this.updateSettingsUI(); this.showScreen('mods'); });
+        $('mods-back-btn').addEventListener('click', () => this.showScreen('start'));
+        $('back-btn').addEventListener('click', () => { this.saveSettingsFromUI(); this.showScreen('start'); });
+        $('resume-btn').addEventListener('click', () => this.togglePause());
+        $('quit-btn').addEventListener('click', () => this.quitGame());
+        
+        $('osz-input').addEventListener('change', (e) => this.handleFileSelect(e));
+        $('import-main-btn').addEventListener('click', () => $('osz-input').click());
+
+        window.addEventListener('keydown', (e) => this.handleInput(e, true), true);
+        window.addEventListener('keyup', (e) => this.handleInput(e, false), true);
+        
+        const updateOffset = (delta) => {
+            let newVal = parseInt(this.ui.elements.offsetSlider.value) + delta;
+            newVal = Math.min(200, Math.max(-200, newVal));
+            this.ui.elements.offsetSlider.value = newVal;
+            this.ui.elements.offsetDisplay.innerText = newVal + ' ms';
+        };
+
+    $('speed-slider').addEventListener('input', (e) => $('speed-display').innerText = parseFloat(e.target.value).toFixed(2));
+        $('offset-slider').addEventListener('input', (e) => $('offset-display').innerText = e.target.value + ' ms');
+        $('hitpos-slider').addEventListener('input', (e) => $('hitpos-display').innerText = e.target.value + '%');
+        $('fpscap-slider').addEventListener('input', (e) => {
+            const val = parseInt(e.target.value);
+            $('fpscap-display').innerText = val === 0 ? 'VSync' : val;
+            Config.maxFps = Math.min(1000, val);
+            Config.save();
+        });
+        $('lanebright-slider').addEventListener('input', (e) => {
+            const val = parseInt(e.target.value);
+            $('lanebright-display').innerText = val + '%';
+            Config.laneBrightness = val;
+            Config.save();
+        });
+        if (this.ui.elements.trailSlider) {
+            this.ui.elements.trailSlider.addEventListener('input', (e) => {
+                const val = parseInt(e.target.value);
+                const alpha = Math.max(0, Math.min(30, val)) / 100;
+                if (this.ui.elements.trailDisplay) this.ui.elements.trailDisplay.innerText = val === 0 ? 'Off' : `${val}%`;
+                Config.smoothTrail = alpha;
+                Config.save();
+            });
+        }
+        if (this.ui.elements.noteColorInputs?.length) {
+            this.ui.elements.noteColorInputs.forEach((el, idx) => {
+                if (!el) return;
+                el.addEventListener('input', (e) => {
+                    Config.noteColors[idx] = e.target.value;
+                    Config.save();
+                });
+            });
+        }
+        $('bgdim-slider').addEventListener('input', (e) => {
+            const val = parseInt(e.target.value);
+            $('bgdim-display').innerText = val + '%';
+            Config.backgroundDim = val;
+            this.applyBackgroundDim();
+            Config.save();
+        });
+        
+        $('off-m5').addEventListener('click', () => updateOffset(-5));
+        $('off-m1').addEventListener('click', () => updateOffset(-1));
+        $('off-p1').addEventListener('click', () => updateOffset(1));
+        $('off-p5').addEventListener('click', () => updateOffset(5));
+    $('offsethint-check').addEventListener('change', (e) => { Config.enableOffsetHint = e.target.checked; Config.save(); });
+        $('hidejudgeline-check').addEventListener('change', (e) => { Config.hideJudgeLine = e.target.checked; Config.save(); });
+        if (this.ui.elements.prewarmCheck) {
+            this.ui.elements.prewarmCheck.addEventListener('change', (e) => { Config.audioPrewarm = e.target.checked; Config.save(); });
+        }
+        if (this.ui.elements.autoOffsetCheck) {
+            this.ui.elements.autoOffsetCheck.addEventListener('change', (e) => { 
+                Config.autoOffsetSuggest = e.target.checked; 
+                if (this.ui.elements.autoOffsetBtn) this.ui.elements.autoOffsetBtn.disabled = !Config.autoOffsetSuggest;
+                Config.save(); 
+            });
+        }
+        if (this.ui.elements.autoOffsetBtn) {
+            this.ui.elements.autoOffsetBtn.addEventListener('click', () => {
+                if (!Config.autoOffsetSuggest) return;
+                const lat = this.audioCtx?.outputLatency;
+                if (typeof lat !== 'number' || !isFinite(lat) || lat <= 0) {
+                    alert('This browser does not expose outputLatency. Please use manual offset.');
+                    return;
+                }
+                const ms = Math.round(lat * 1000);
+                Config.offset = Math.max(-200, Math.min(200, ms));
+                this.ui.elements.offsetSlider.value = Config.offset;
+                this.ui.elements.offsetDisplay.innerText = Config.offset + ' ms';
+                Config.save();
+            });
+        }
+
+        // Pause sliders
+        const pSpeed = $('pause-speed-slider');
+        const pSpeedDisp = $('pause-speed-display');
+    if (pSpeed) pSpeed.addEventListener('input', (e) => { const v = parseFloat(e.target.value); pSpeedDisp.innerText = v.toFixed(2); Config.scrollSpeed = v; Config.save(); this.showSpeedToast(); });
+        const pHit = $('pause-hitpos-slider');
+        const pHitDisp = $('pause-hitpos-display');
+        if (pHit) pHit.addEventListener('input', (e) => { const v = parseInt(e.target.value); pHitDisp.innerText = v + '%'; Config.hitPosition = v; this.hitY = this.canvas.height * (v/100); Config.save(); });
+        const pLane = $('pause-lane-slider');
+        const pLaneDisp = $('pause-lane-display');
+        if (pLane) pLane.addEventListener('input', (e) => { const v = parseInt(e.target.value); pLaneDisp.innerText = v + '%'; Config.laneBrightness = v; Config.save(); });
+
+        document.querySelectorAll('.key-input').forEach(el => el.addEventListener('click', (e) => this.startKeyBind(e.target)));
+        $('bind-restart').addEventListener('click', (e) => this.startSysKeyBind(e.target, 'restart'));
+        $('bind-hide').addEventListener('click', (e) => this.startSysKeyBind(e.target, 'hideCombo'));
+    }
+    
+    bindModEvents() {
+        const btns = document.querySelectorAll('.mod-btn');
+        const desc = document.getElementById('mod-description');
+        const csContainer = document.getElementById('custom-speed-container');
+        const csSlider = document.getElementById('cs-speed-slider');
+        const csDisplay = document.getElementById('cs-speed-display');
+        
+        btns.forEach(btn => {
+            btn.onclick = (e) => { this.toggleMod(btn.dataset.mod); };
+            btn.addEventListener('mouseenter', () => desc.innerText = this.modDescriptions[btn.dataset.mod]);
+            btn.addEventListener('mouseleave', () => desc.innerText = "Select mods to customize gameplay");
+        });
+        
+        // Custom Speed slider events
+        if (csSlider) {
+            csSlider.addEventListener('input', () => {
+                Config.customRate = parseFloat(csSlider.value);
+                csDisplay.innerText = Config.customRate.toFixed(2) + 'x';
+                Config.save();
+            });
+        }
+    }
+    
+    toggleMod(mod) {
+        Config.mods[mod] = !Config.mods[mod];
+        const csContainer = document.getElementById('custom-speed-container');
+        
+        if(Config.mods[mod]) {
+            if(mod === 'DT' || mod === 'NC') { Config.mods.HT = false; Config.mods.CR = false; }
+            if(mod === 'HT') { Config.mods.DT = false; Config.mods.NC = false; Config.mods.CR = false; }
+            if(mod === 'CR') { Config.mods.DT = false; Config.mods.NC = false; Config.mods.HT = false; }
+            if(mod === 'EZ') Config.mods.HR = false;
+            if(mod === 'HR') Config.mods.EZ = false;
+            if(mod === 'SD') Config.mods.PF = false; 
+            if(mod === 'PF') Config.mods.SD = false;
+            if(mod === 'NC') Config.mods.DT = true; 
+        } else {
+            if(mod === 'DT') Config.mods.NC = false;
+        }
+        
+        // Show/hide custom speed slider
+        if (csContainer) {
+            csContainer.style.display = Config.mods.CR ? 'block' : 'none';
+        }
+        
+        Config.save();
+        this.applySettings();
+    }
+
+    updateSettingsUI() {
+        const $ = (id) => document.getElementById(id);
+        $('speed-slider').value = Config.scrollSpeed;
+    $('speed-display').innerText = Config.scrollSpeed.toFixed(2);
+        $('offset-slider').value = Config.offset;
+        $('offset-display').innerText = Config.offset + ' ms';
+    $('offsethint-check').checked = Config.enableOffsetHint;
+        $('hidejudgeline-check').checked = Config.hideJudgeLine;
+        $('skin-select').value = Config.skin;
+        $('judge-select').value = Config.difficulty;
+        $('tail-judge-check').checked = Config.tailJudgement;
+        $('fever-check').checked = Config.enableFever;
+        $('fps-check').checked = Config.showFPS;
+    $('fpscap-slider').value = Config.maxFps;
+    $('fpscap-display').innerText = Config.maxFps === 0 ? 'VSync' : Config.maxFps;
+        $('hitsound-check').checked = Config.enableHitSounds;
+        if (this.ui.elements.prewarmCheck) this.ui.elements.prewarmCheck.checked = !!Config.audioPrewarm;
+        if (this.ui.elements.autoOffsetCheck) this.ui.elements.autoOffsetCheck.checked = !!Config.autoOffsetSuggest;
+        if (this.ui.elements.autoOffsetBtn) this.ui.elements.autoOffsetBtn.disabled = !Config.autoOffsetSuggest;
+        $('hitpos-slider').value = Config.hitPosition;
+        $('hitpos-display').innerText = Config.hitPosition + '%';
+    $('lanebright-slider').value = Config.laneBrightness;
+    $('lanebright-display').innerText = Config.laneBrightness + '%';
+    const trailPct = Math.round(Math.max(0, Math.min(0.3, Config.smoothTrail)) * 100);
+    if (this.ui.elements.trailSlider) this.ui.elements.trailSlider.value = trailPct;
+    if (this.ui.elements.trailDisplay) this.ui.elements.trailDisplay.innerText = trailPct === 0 ? 'Off' : `${trailPct}%`;
+        if (this.ui.elements.noteColorInputs?.length) {
+            this.ui.elements.noteColorInputs.forEach((el, idx) => { if (el) el.value = Config.noteColors[idx]; });
+        }
+        $('bgdim-slider').value = Config.backgroundDim;
+        $('bgdim-display').innerText = Config.backgroundDim + '%';
+        this.applySettings();
+    }
+
+    saveSettingsFromUI() {
+        const $ = (id) => document.getElementById(id);
+        Config.scrollSpeed = parseFloat($('speed-slider').value);
+        Config.offset = parseInt($('offset-slider').value);
+    Config.enableOffsetHint = $('offsethint-check').checked;
+        Config.hideJudgeLine = $('hidejudgeline-check').checked;
+        Config.skin = $('skin-select').value;
+        Config.difficulty = parseInt($('judge-select').value);
+        Config.tailJudgement = $('tail-judge-check').checked;
+        Config.enableFever = $('fever-check').checked;
+        Config.showFPS = $('fps-check').checked;
+    Config.maxFps = parseInt($('fpscap-slider').value);
+        Config.enableHitSounds = $('hitsound-check').checked;
+        Config.audioPrewarm = $('prewarm-check') ? $('prewarm-check').checked : Config.audioPrewarm;
+        Config.autoOffsetSuggest = $('autooffset-check') ? $('autooffset-check').checked : Config.autoOffsetSuggest;
+        Config.hitPosition = parseInt($('hitpos-slider').value);
+        Config.laneBrightness = parseInt($('lanebright-slider').value);
+        Config.backgroundDim = parseInt($('bgdim-slider').value);
+        const trailPct = this.ui.elements.trailSlider ? parseInt(this.ui.elements.trailSlider.value) : 0;
+        Config.smoothTrail = Math.min(0.3, Math.max(0, trailPct / 100));
+        Config.save();
+        this.applySettings();
+    }
+
+    async handleFileSelect(event) {
+        const file = event.target.files[0];
+        if (!file) return;
+        const $ = (id) => document.getElementById(id);
+        $('loading-overlay').style.display = 'flex';
+        $('loading-text').innerText = "Reading .osz file...";
+
+        try {
+            const zip = await JSZip.loadAsync(file);
+            const files = Object.keys(zip.files);
+            
+            await this.loadHitSoundFromZip(zip, 'soft-hitnormal', 'normal');
+            await this.loadHitSoundFromZip(zip, 'soft-hitclap', 'clap');
+            await this.loadHitSoundFromZip(zip, 'soft-hitwhistle', 'whistle');
+            await this.loadHitSoundFromZip(zip, 'soft-hitfinish', 'finish');
+
+            const osuFiles = files.filter(f => f.endsWith('.osu'));
+            if (osuFiles.length === 0) throw new Error("No .osu file found");
+            
+            let selectedOsu = null;
+            for(let fName of osuFiles) {
+                const head = await zip.file(fName).async("string");
+                if(head.includes('Mode: 3')) { selectedOsu = fName; break; }
+            }
+            if(!selectedOsu) selectedOsu = osuFiles[0];
+            
+            const osuContent = await zip.file(selectedOsu).async("string");
+            const metadata = this.parseOsuMetadata(osuContent);
+            this.songMetadata = metadata;
+            this.ui.elements.songName.innerText = `${metadata.artist} - ${metadata.title}`;
+            this.currentBgUrl = 'skin/menu-background.jpg';
+            this.updateBackgroundPreview();
+            if (this.ui.elements.hudSong) this.ui.elements.hudSong.innerText = `${metadata.artist} - ${metadata.title}`;
+            
+            // BG Logic (Card only)
+            const bgFile = this.parseOsuBackground(osuContent);
+            if(bgFile) {
+                const bgZipName = files.find(f => f.toLowerCase() === bgFile.toLowerCase());
+                if(bgZipName) {
+                    const bgBlob = await zip.file(bgZipName).async("blob");
+                    const bgUrl = URL.createObjectURL(bgBlob);
+                    // Safe set
+                    const card = $('song-card-bg');
+                    const prev = $('bg-preview');
+                    if(card) card.style.backgroundImage = `url('${bgUrl}')`;
+                    if(prev) { prev.style.backgroundImage = `url('${bgUrl}')`; prev.innerText = ""; }
+                    this.currentBgUrl = bgUrl;
+                    this.updateBackgroundPreview();
+                    // Reset global BG to default
+                    document.body.style.backgroundImage = "";
+                }
+            }
+
+            const audioFileName = metadata.audioFilename;
+            const zipAudioName = files.find(f => f.toLowerCase() === audioFileName.toLowerCase());
+            if (zipAudioName) {
+                $('loading-text').innerText = "Decoding Audio...";
+                const audioData = await zip.file(zipAudioName).async("arraybuffer");
+                this.audioBuffer = await this.audioCtx.decodeAudioData(audioData);
+            } else {
+                alert("Audio file not found in zip, using synthesizer.");
+                this.audioBuffer = null;
+            }
+
+            $('loading-text').innerText = "Parsing Map...";
+            this.notes = this.parseOsuHitObjects(osuContent);
+            
+            $('loading-overlay').style.display = 'none';
+            this.showScreen('start');
+            alert(`Loaded: ${metadata.title}\nNotes: ${this.notes.length}`);
+
+        } catch (err) {
+            console.error(err);
+            alert("Error: " + err.message);
+            $('loading-overlay').style.display = 'none';
+            this.generateProceduralMap();
+        }
+    }
+
+    // [Parser methods omitted for brevity, same as before]
+    parseOsuMetadata(content) {
+        const lines = content.split('\n');
+        let title = "Unknown", artist = "Unknown", audioFilename = "";
+        for (let line of lines) {
+            line = line.trim();
+            if (line.startsWith('Title:')) title = line.substring(6).trim();
+            if (line.startsWith('Artist:')) artist = line.substring(7).trim();
+            if (line.startsWith('AudioFilename:')) audioFilename = line.substring(14).trim();
+        }
+        return { title, artist, audioFilename };
+    }
+    parseOsuBackground(content) {
+        const lines = content.split('\n');
+        let inEvents = false;
+        for (let line of lines) {
+            line = line.trim();
+            if(line === '[Events]') { inEvents = true; continue; }
+            if(inEvents && line.startsWith('//')) continue;
+            if(inEvents && line.startsWith('[')) break; 
+            if(inEvents && (line.startsWith('0,0,') || line.startsWith('0,0'))) {
+                const parts = line.split(',');
+                if(parts.length >= 3) {
+                    let bg = parts[2].trim();
+                    if(bg.startsWith('"') && bg.endsWith('"')) bg = bg.substring(1, bg.length-1);
+                    return bg;
+                }
+            }
+        }
+        return null;
+    }
+    parseOsuHitObjects(content) {
+        const lines = content.split('\n');
+        const notes = [];
+        let inHitObjects = false;
+        let columnCount = 4;
+        for (let line of lines) { if(line.startsWith('CircleSize:')) columnCount = parseInt(line.split(':')[1].trim()); }
+        for (let line of lines) {
+            line = line.trim();
+            if (line === '[HitObjects]') { inHitObjects = true; continue; }
+            if (!inHitObjects || line === '') continue;
+            const parts = line.split(',');
+            if (parts.length < 3) continue;
+            const x = parseInt(parts[0]);
+            const time = parseInt(parts[2]);
+            const type = parseInt(parts[3]);
+            let col = Math.floor(x * columnCount / 512);
+            col = Math.max(0, Math.min(columnCount - 1, col));
+            if (columnCount > 4) col = col % 4; 
+            const note = { time, col, hit: false, processed: false, isHold: false, endTime: 0, holding: false, holdHit: false };
+            if ((type & 128) > 0) {
+                note.isHold = true;
+                note.endTime = parseInt(parts[5].split(':')[0]);
+            }
+            notes.push(note);
+        }
+        return notes.sort((a,b) => a.time - b.time);
+    }
+    generateProceduralMap() {
+        this.notes = [];
+        this.songMetadata = { title: "Procedural Beats", artist: "System" };
+        this.audioBuffer = null;
+        this.currentBgUrl = 'skin/menu-background.jpg';
+        for (let t = 2000; t < 90000; t += 125) {
+             if (Math.random() < 0.2) {
+                 const isHold = Math.random() < 0.2;
+                 this.notes.push({
+                     time: t, col: Math.floor(Math.random() * 4),
+                     hit: false, processed: false,
+                     isHold: isHold, endTime: isHold ? t + 200 + Math.random() * 500 : 0,
+                     holding: false, holdHit: false
+                 });
+             }
+        }
+        this.ui.elements.songName.innerText = "Procedural Beats";
+        if (this.ui.elements.hudSong) this.ui.elements.hudSong.innerText = "Procedural Beats";
+        this.updateBackgroundPreview();
+    }
+    
+    // [Bind methods same as before]
+    startKeyBind(element) {
+        const col = parseInt(element.dataset.col);
+        element.innerText = '...'; element.classList.add('binding');
+        const handler = (e) => {
+            e.preventDefault();
+            if (e.code === 'Escape') {
+                element.innerText = Config.keyDisplay[col]; element.classList.remove('binding');
+                window.removeEventListener('keydown', handler); return;
+            }
+            Config.keybinds[col] = e.code; Config.keyDisplay[col] = e.key.toUpperCase();
+            element.innerText = Config.keyDisplay[col]; element.classList.remove('binding');
+            window.removeEventListener('keydown', handler);
+            // 自动跳转到下一个键位
+            const nextCol = col + 1;
+            if (nextCol < 4) {
+                const nextEl = document.getElementById(`key-${nextCol}`);
+                if (nextEl) setTimeout(() => this.startKeyBind(nextEl), 100);
+            }
+        };
+        window.addEventListener('keydown', handler);
+    }
+    startSysKeyBind(element, sysKey) {
+        element.innerText = '...'; element.classList.add('binding');
+        const handler = (e) => {
+            e.preventDefault();
+            if(e.code !== 'Escape') {
+                Config.keybinds_sys[sysKey] = e.code; Config.keyDisplay_sys[sysKey] = e.key.toUpperCase();
+            }
+            element.innerText = Config.keyDisplay_sys[sysKey]; element.classList.remove('binding');
+            window.removeEventListener('keydown', handler);
+        };
+        window.addEventListener('keydown', handler);
+    }
+
+    showScreen(name) {
+        // 隐藏所有屏幕（除了hud，它单独处理）
+        Object.values(this.ui.screens).forEach(s => {
+             s.classList.remove('visible');
+             if(s.id !== 'game-hud') s.style.display = 'none';
+        });
+        
+        // 显示目标屏幕
+        if (this.ui.screens[name] && name !== 'hud') {
+            this.ui.screens[name].style.display = 'flex';
+            // 需要过渡动画的屏幕
+            if (name === 'mods' || name === 'pause' || name === 'results') {
+                requestAnimationFrame(() => this.ui.screens[name].classList.add('visible'));
+            }
+        }
+        
+        // HUD控制：游戏中和暂停时显示
+        const showHud = (name === 'hud' || name === 'pause');
+        this.ui.screens.hud.style.display = showHud ? 'flex' : 'none';
+        if (showHud) this.repositionHud();
+        
+        // 更新游戏状态
+        if (name === 'hud') this.gameState = 'PLAYING';
+        else if (name === 'pause') this.gameState = 'PAUSED';
+        else this.gameState = 'MENU';
+        
+        // offset提示
+        if (name !== 'hud' && this.ui.elements.offsetHint) {
+            this.ui.elements.offsetHint.style.opacity = 0;
+        }
+        
+        // 控制游戏外背景装饰元素
+        const floatingEl = document.getElementById('floating-elements');
+        const sakuraEl = document.getElementById('sakura-container');
+        const isInGame = (name === 'hud' || name === 'pause');
+        if (floatingEl) floatingEl.style.display = isInGame ? 'none' : 'block';
+        if (sakuraEl) sakuraEl.style.display = isInGame ? 'none' : 'block';
+    }
+
+    start() {
+        if (this.audioCtx.state === 'suspended') this.audioCtx.resume();
+        this.showScreen('hud');
+        if (this.ui.elements.hudSong && this.songMetadata) {
+            this.ui.elements.hudSong.innerText = `${this.songMetadata.artist} - ${this.songMetadata.title}`;
+        }
+        this.repositionHud();
+        
+        this.stats = { score: 0, combo: 0, maxCombo: 0, marvelous: 0, perfect: 0, great: 0, good: 0, bad: 0, miss: 0, fast: 0, late: 0 };
+        
+        // MR (Mirror) mod: 翻转note列
+        if (Config.mods.MR) {
+            this.notes.forEach(n => { n.col = 3 - n.col; });
+        }
+        
+        this.notes.forEach(n => { n.hit = false; n.processed = false; n.holding = false; n.holdHit = false; });
+        this.ui.elements.comboContainer.style.opacity = 0;
+        this.ui.elements.judge.style.opacity = 0;
+        this.endFever();
+        this.updateHUD();
+        this.timingSamples.length = 0;
+        this.hitErrorMarks.length = 0; // 清空 Hit Error Bar 数据
+        if (this.ui.elements.offsetHint) this.ui.elements.offsetHint.style.opacity = 0;
+        this.hideCombo = false;
+        this.ui.elements.comboContainer.classList.remove('hidden');
+        this.finished = false;
+        
+        // 构建按列索引的 note 列表 (高精度判定优化)
+        this.buildColumnIndex();
+        
+        // 初始化高性能判定引擎
+        HitEngine.buildFromNotes(this.notes);
+        HitEngine.reset();
+        // 启用高性能模式标记
+        this.useHitEngine = true;
+
+        // Optional audio prewarm (helps reduce first-sound latency on some setups)
+        if (Config.audioPrewarm) {
+            try {
+                const sr = this.audioCtx.sampleRate;
+                const dur = 0.03;
+                const buf = this.audioCtx.createBuffer(1, Math.max(1, Math.floor(sr * dur)), sr);
+                const src = this.audioCtx.createBufferSource();
+                src.buffer = buf;
+                const g = this.audioCtx.createGain();
+                g.gain.value = 0.00001;
+                src.connect(g);
+                g.connect(this.audioCtx.destination);
+                src.start();
+                src.stop(this.audioCtx.currentTime + dur);
+            } catch(e) { /* ignore */ }
+        }
+
+        // Anchoring
+        this.startTime = this.audioCtx.currentTime + 1.5; 
+        
+        let rate = 1.0;
+        if(Config.mods.CR) {
+            rate = Config.customRate; // Custom Rate 使用自定义速率
+        } else if(Config.mods.DT || Config.mods.NC) {
+            rate = 1.5;
+        } else if(Config.mods.HT) {
+            rate = 0.75;
+        }
+
+        this.songEndTimeMs = this.computeSongEndTime(rate);
+
+        if (this.audioBuffer) {
+            if (this.audioSource) { this.audioSource.onended = null; try { this.audioSource.stop(); } catch(e){} }
+            this.audioSource = this.audioCtx.createBufferSource();
+            this.audioSource.buffer = this.audioBuffer;
+            this.audioSource.connect(this.audioCtx.destination);
+            this.audioSource.playbackRate.value = rate;
+            this.audioSource.onended = () => { if (!this.finished) this.finish(); };
+            this.audioSource.start(this.startTime);
+        } else {
+            this.synthNextNote = this.startTime;
+        }
+    }
+
+    togglePause() {
+        if (this.gameState === 'PLAYING') {
+            this.audioCtx.suspend();
+            this.showScreen('pause');
+            this.syncPauseControls();
+        } else if (this.gameState === 'PAUSED') {
+            this.audioCtx.resume();
+            this.showScreen('hud');
+        }
+    }
+
+    quitGame() {
+        this.finished = true;
+        if (this.audioSource) { this.audioSource.onended = null; try { this.audioSource.stop(); } catch(e){} }
+        this.audioCtx.resume();
+        this.showScreen('start');
+    }
+
+    repositionHud() {
+        const hud = this.ui?.screens?.hud;
+        const container = document.getElementById('game-container');
+        if (!hud || !container) return;
+        const rect = container.getBoundingClientRect();
+        // HUD放在游戏容器内部的左上角
+        // HUD放在游戏容器的左边外面
+        const hudWidth = hud.offsetWidth || 200;
+        hud.style.top = `${rect.top + 16}px`;
+        hud.style.left = `${rect.left - hudWidth - 20}px`;
+    }
+
+    syncPauseControls() {
+        const ui = this.ui.elements;
+        if (ui.pauseSpeedSlider && ui.pauseSpeedDisplay) {
+            ui.pauseSpeedSlider.value = Config.scrollSpeed;
+            ui.pauseSpeedDisplay.innerText = Config.scrollSpeed.toFixed(2);
+        }
+        if (ui.pauseHitposSlider && ui.pauseHitposDisplay) {
+            ui.pauseHitposSlider.value = Config.hitPosition;
+            ui.pauseHitposDisplay.innerText = Config.hitPosition + '%';
+        }
+        if (ui.pauseLaneSlider && ui.pauseLaneDisplay) {
+            ui.pauseLaneSlider.value = Config.laneBrightness;
+            ui.pauseLaneDisplay.innerText = Config.laneBrightness + '%';
+        }
+    }
+
+    handleInput(e, isDown) {
+        if(this.bindingHandler) return;
+        
+        if(isDown) {
+            if (e.code === 'Escape') {
+                if (this.gameState === 'PLAYING' || this.gameState === 'PAUSED') {
+                    // NP mod: 按ESC直接退出游戏，不暂停
+                    if (Config.mods.NP) {
+                        this.quitGame();
+                    } else {
+                        this.togglePause();
+                    }
+                    return;
+                }
+            }
+            if (e.code === Config.keybinds_sys.restart && this.gameState === 'PLAYING') {
+                this.quitGame(); setTimeout(() => this.start(), 100); return;
+            }
+            if (e.code === Config.keybinds_sys.hideCombo && this.gameState === 'PLAYING') {
+                this.hideCombo = !this.hideCombo;
+                if(this.hideCombo) this.ui.elements.comboContainer.classList.add('hidden');
+                else this.ui.elements.comboContainer.classList.remove('hidden');
+                return;
+            }
+        }
+        if (Config.mods.AT) return; 
+
+        if (isDown && e.ctrlKey && this.gameState === 'PLAYING') {
+            if (e.key === '=' || e.key === '+') {
+                e.preventDefault(); Config.scrollSpeed = Math.min(10.0, Config.scrollSpeed + 0.05); Config.save(); this.showSpeedToast();
+            } else if (e.key === '-') {
+                e.preventDefault(); Config.scrollSpeed = Math.max(0.5, Config.scrollSpeed - 0.05); Config.save(); this.showSpeedToast();
+            }
+        }
+
+        if (this.gameState !== 'PLAYING') return;
+        if(Config.keybinds.includes(e.code)) e.preventDefault();
+
+        const col = Config.keybinds.indexOf(e.code);
+        if (col === -1) return;
+        
+        // 使用高精度时间戳
+        const inputTimestamp = performance.now();
+
+        if (isDown) {
+            // 记录按键状态用于视觉效果和长条判定
+            const wasPressed = this.activeKeys[col];
+            this.activeKeys[col] = true;
+            this.keyEffects[col] = 1.0;
+            
+            // 高精度防抖: 防止硬件抖动和 key repeat
+            const lastPress = this.lastKeyPressTime[col] || 0;
+            const timeSinceLastPress = inputTimestamp - lastPress;
+            
+            // 必须满足：
+            // 1. 距离上次按下超过最小间隔 (防止硬件抖动)
+            // 2. 或者按键已经松开过 (允许快速连打)
+            if (timeSinceLastPress >= MIN_KEY_INTERVAL_MS || !wasPressed) {
+                // 记录这次按键的精确时间
+                this.lastKeyPressTime[col] = inputTimestamp;
+                this.keyPressTimestamp[col] = inputTimestamp;
+                
+                // 加入输入队列，在游戏循环中处理
+                if (this.inputQueue.length < this.maxInputQueueSize) {
+                    this.inputQueue.push({
+                        type: 'down',
+                        col: col,
+                        timestamp: inputTimestamp,
+                        gameTime: this.getCurrentTime()
+                    });
+                }
+            }
+        } else {
+            // 松开按键
+            this.activeKeys[col] = false;
+            this.keyBufferExpiry[col] = 0;
+            
+            // 加入输入队列
+            if (this.inputQueue.length < this.maxInputQueueSize) {
+                this.inputQueue.push({
+                    type: 'up',
+                    col: col,
+                    timestamp: inputTimestamp
+                });
+            }
+        }
+    }
+    
+    // 处理输入队列
+    processInputQueue() {
+        while (this.inputQueue.length > 0) {
+            const input = this.inputQueue.shift();
+            
+            if (input.type === 'down') {
+                // 使用输入时记录的游戏时间
+                const hitSuccess = this.checkHit(input.col, input.gameTime);
+                this.keyBufferExpiry[input.col] = hitSuccess ? 0 : input.gameTime + this.inputBufferMs;
+            } else if (input.type === 'up') {
+                this.checkRelease(input.col);
+            }
+        }
+    }
+
+    showSpeedToast() {
+        const el = this.ui.elements.speedToast;
+        el.innerText = `Speed: ${Config.scrollSpeed.toFixed(2)}`;
+        el.style.opacity = 1;
+        clearTimeout(this.speedToastTimer);
+        this.speedToastTimer = setTimeout(() => { el.style.opacity = 0; }, 1000);
+    }
+
+    getCurrentTime() {
+        let rawTime = this.audioCtx.currentTime - this.startTime;
+        let rate = this.getTimeRate();
+        // 游戏时间 = 音频经过时间 * 播放速率 + 偏移
+        // 正 offset = 音乐延迟，需要晚按 = 判定时间更大
+        return (rawTime * rate * 1000) + Config.offset;
+    }
+
+    // 获取用于绘制的视觉时间（与判定时间相同，保证视觉与判定同步）
+    getVisualTime() {
+        return this.getCurrentTime();
+    }
+
+    // 获取当前的时间缩放率（用于将谱面时间转换为视觉时间）
+    getTimeRate() {
+        let rate = 1.0;
+        // Custom Speed优先级最高
+        if(Config.mods.CR) {
+            rate = Config.customRate;
+        } else if(Config.mods.DT || Config.mods.NC) {
+            rate = 1.5;
+        } else if(Config.mods.HT) {
+            rate = 0.75;
+        }
+        return rate;
+    }
+
+    processBufferedHits(gameTime) {
+        for (let col = 0; col < this.keyBufferExpiry.length; col++) {
+            if (this.keyBufferExpiry[col] === 0) continue;
+            if (gameTime > this.keyBufferExpiry[col]) {
+                this.keyBufferExpiry[col] = 0;
+                continue;
+            }
+            if (this.checkHit(col, gameTime)) {
+                this.keyBufferExpiry[col] = 0;
+            }
+        }
+    }
+
+    // 高性能判定 - 使用 HitEngine
+    checkHit(col, forcedTime = null) {
+        const currentTime = forcedTime ?? this.getCurrentTime();
+        const windows = getWindows(Config.difficulty);
+        
+        // 使用高性能引擎
+        if (this.useHitEngine) {
+            const result = HitEngine.checkHit(col, currentTime, windows);
+            if (result.grade === -1 || result.noteIdx === -1) return false;
+            
+            // 转换判定等级 (顺序对应: JUDGE_MISS=0, JUDGE_BAD=1, JUDGE_GOOD=2, JUDGE_GREAT=3, JUDGE_PERFECT=4, JUDGE_MARVELOUS=5)
+            const gradeNames = ['MISS', 'BAD', 'GOOD', 'GREAT', 'PERFECT', 'MARVELOUS'];
+            const grade = gradeNames[result.grade];
+            const rawDiff = result.timing;
+            
+            // 同步到原始 notes 数组（供渲染使用）
+            const noteIdx = result.noteIdx;
+            // 通过列索引找到对应的原始 note
+            const colNotes = this.notesByCol[col];
+            if (colNotes) {
+                for (const note of colNotes) {
+                    if (Math.abs(note.time - HitEngine.getTime(noteIdx)) < 1) {
+                        note.processed = HitEngine.isProcessed(noteIdx);
+                        note.hit = HitEngine.isHit(noteIdx);
+                        note.holding = HitEngine.isHolding(noteIdx);
+                        note.holdHit = HitEngine.isHoldHit(noteIdx);
+                        break;
+                    }
+                }
+            }
+            
+            // 计算 timing
+            const timing = (grade !== 'MARVELOUS' && grade !== 'MISS') 
+                ? (rawDiff > 0 ? 'FAST' : 'LATE') 
+                : '';
+            
+            this.registerHit(grade, timing, col);
+            if (grade !== 'MISS') {
+                this.trackTiming(rawDiff);
+                // 记录 Hit Error Bar 数据
+                const mark = HitErrorPool.get();
+                mark.diff = rawDiff;
+                mark.timestamp = performance.now();
+                mark.grade = grade;
+                this.hitErrorMarks.push(mark);
+                if (this.hitErrorMarks.length > 30) {
+                    HitErrorPool.release(this.hitErrorMarks.shift());
+                }
+            }
+            return grade !== 'MISS';
+        }
+        
+        // 降级到普通判定（备用）
+        const note = this.findNoteCandidate(col, currentTime, windows);
+        if (!note) return false;
+
+        const rawDiff = note.time - currentTime;
+        const { grade, timing } = this.determineJudge(rawDiff, windows);
+
+        if (note.isHold) {
+            if (grade === 'MISS') {
+                note.processed = true;
+                note.holding = false;
+                note.hit = false;
+            } else {
+                note.holdHit = true;
+                note.holding = true;
+                note.hit = true;
+            }
+        } else {
+            note.processed = true;
+            note.hit = grade !== 'MISS';
+        }
+
+        this.registerHit(grade, timing, note.col);
+        if (grade !== 'MISS') {
+            this.trackTiming(rawDiff);
+            const mark = HitErrorPool.get();
+            mark.diff = rawDiff;
+            mark.timestamp = performance.now();
+            mark.grade = grade;
+            this.hitErrorMarks.push(mark);
+            if (this.hitErrorMarks.length > 30) {
+                HitErrorPool.release(this.hitErrorMarks.shift());
+            }
+        }
+        return grade !== 'MISS';
+    }
+    
+    // 构建按列索引的 note 列表
+    buildColumnIndex() {
+        this.notesByCol = [[], [], [], []];
+        this.colNextIndex = [0, 0, 0, 0];
+        
+        for (const note of this.notes) {
+            if (note.col >= 0 && note.col < 4) {
+                this.notesByCol[note.col].push(note);
+            }
+        }
+        
+        // 每列按时间排序
+        for (let col = 0; col < 4; col++) {
+            this.notesByCol[col].sort((a, b) => a.time - b.time);
+        }
+    }
+
+    // 优化的 note 查找 - 使用列索引，O(1) ~ O(n) 最坏情况大幅减少
+    findNoteCandidate(col, currentTime, windows) {
+        const colNotes = this.notesByCol[col];
+        if (!colNotes || colNotes.length === 0) return null;
+        
+        let best = null;
+        let bestDiff = Infinity;
+        
+        // 从当前索引开始向前后搜索
+        let startIdx = this.colNextIndex[col];
+        
+        // 先向前跳过已经过期的 note（更新索引）
+        while (startIdx < colNotes.length) {
+            const note = colNotes[startIdx];
+            if (note.processed || (note.isHold && note.holdHit)) {
+                startIdx++;
+                continue;
+            }
+            const diff = note.time - currentTime;
+            if (diff < -windows.MISS) {
+                // 已经过了判定窗口，跳过
+                startIdx++;
+                continue;
+            }
+            break;
+        }
+        
+        // 更新列索引
+        this.colNextIndex[col] = startIdx;
+        
+        // 从当前位置开始搜索
+        for (let i = startIdx; i < colNotes.length; i++) {
+            const note = colNotes[i];
+            if (note.processed) continue;
+            if (note.isHold && note.holdHit) continue;
+            
+            const diff = note.time - currentTime;
+            const absDiff = Math.abs(diff);
+            
+            // 如果 note 还太远，后面的也都太远，可以停止
+            if (diff > windows.MISS) break;
+            
+            if (absDiff < bestDiff) {
+                best = note;
+                bestDiff = absDiff;
+                // MARVELOUS 级别可以提前返回
+                if (bestDiff <= windows.MARVELOUS) return best;
+            }
+        }
+        
+        return best;
+    }
+
+    determineJudge(diff, windows) {
+        const absDiff = Math.abs(diff);
+        let grade = 'MISS';
+        if (absDiff <= windows.MARVELOUS) grade = 'MARVELOUS';
+        else if (absDiff <= windows.PERFECT) grade = 'PERFECT';
+        else if (absDiff <= windows.GREAT) grade = 'GREAT';
+        else if (absDiff <= windows.GOOD) grade = 'GOOD';
+        else if (absDiff <= windows.BAD) grade = 'BAD';
+
+        let timing = '';
+        if (grade !== 'MARVELOUS' && grade !== 'MISS') {
+            timing = diff > 0 ? 'FAST' : 'LATE';
+        }
+        return { grade, timing };
+    }
+
+    computeSongEndTime(rate) {
+        let last = 0;
+        if (this.notes.length > 0) {
+            const tail = this.notes[this.notes.length - 1];
+            last = Math.max(tail.endTime || tail.time || 0, tail.time || 0);
+        }
+        let audioEnd = 0;
+        if (this.audioBuffer) {
+            audioEnd = (this.audioBuffer.duration * 1000) / rate;
+        }
+        // Add small buffer so results have time to settle
+        const base = Math.max(last, audioEnd);
+        if (base === 0) return 60000; // fallback 60s if map empty
+        return base + 1200;
+    }
+
+    pulseReceptor(col, judge) {
+        if (col === null || typeof this.receptorScale[col] === 'undefined') return;
+        const scaleMap = {
+            MARVELOUS: 1.35,
+            PERFECT: 1.28,
+            GREAT: 1.2,
+            GOOD: 1.12
+        };
+        const boost = scaleMap[judge] || 1.05;
+        this.receptorScale[col] = Math.max(boost, this.receptorScale[col]);
+        this.receptorGlow[col] = 1;
+        
+        // 击中时产生爆发粒子效果 (osu mania style)
+        this.spawnHitParticles(col, judge);
+    }
+    
+    // osu mania风格的击中粒子效果 - 使用对象池
+    spawnHitParticles(col, judge) {
+        const particleCount = judge === 'MARVELOUS' ? 12 : judge === 'PERFECT' ? 8 : 5;
+        const x = col * this.colWidth + this.colWidth / 2;
+        const y = this.hitY;
+        const colors = getNoteColors();
+        
+        for (let i = 0; i < particleCount; i++) {
+            const p = ParticlePool.get();
+            p.x = x;
+            p.y = y;
+            p.vx = (Math.random() - 0.5) * 8;
+            p.vy = -Math.random() * 6 - 2;
+            p.life = 1.0;
+            p.decay = 0.04 + Math.random() * 0.02;
+            p.size = 3 + Math.random() * 4;
+            p.color = colors[col];
+            p.judge = judge;
+            this.hitParticles.push(p);
+        }
+    }
+
+    trackTiming(diff) {
+        if (!Config.enableOffsetHint) return;
+        if (!isFinite(diff)) return;
+        this.timingSamples.push(diff);
+        if (this.timingSamples.length >= OFFSET_HINT_SAMPLES) {
+            const avg = this.timingSamples.reduce((sum, val) => sum + val, 0) / this.timingSamples.length;
+            this.timingSamples.length = 0;
+            if (Math.abs(avg) >= OFFSET_HINT_THRESHOLD) {
+                this.showOffsetHint(avg);
+            }
+        }
+    }
+
+    showOffsetHint(avg) {
+        if (!Config.enableOffsetHint) return;
+        const el = this.ui.elements.offsetHint;
+        if (!el) return;
+        const isFast = avg > 0;
+        const ms = Math.abs(avg).toFixed(1);
+        const advice = isFast ? '增加' : '减少';
+        el.innerText = `判定偏${isFast ? '快 FAST' : '慢 LATE'}，约 ${ms}ms · 可尝试${advice}音频延迟`;
+        el.style.opacity = 1;
+        clearTimeout(this.offsetHintTimer);
+        this.offsetHintTimer = setTimeout(() => { el.style.opacity = 0; }, 2200);
+    }
+
+    checkRelease(col) {
+        const currentTime = this.getCurrentTime();
+        const windows = getWindows(Config.difficulty);
+        
+        // 使用高性能引擎
+        if (this.useHitEngine) {
+            const result = HitEngine.checkRelease(col, currentTime, windows);
+            if (result.noteIdx === -1) return;
+            
+            const gradeNames = ['MISS', 'GOOD', 'GREAT', 'PERFECT', 'MARVELOUS'];
+            const grade = gradeNames[result.grade];
+            
+            // 同步到原始 notes
+            const colNotes = this.notesByCol[col];
+            if (colNotes) {
+                for (const note of colNotes) {
+                    if (Math.abs(note.time - HitEngine.getTime(result.noteIdx)) < 1) {
+                        note.holding = false;
+                        note.processed = true;
+                        break;
+                    }
+                }
+            }
+            
+            this.registerHit(grade, '', col);
+            return;
+        }
+        
+        // 降级到普通处理
+        const note = this.notes.find(n => n.col === col && n.holding && !n.processed);
+        
+        if (note) {
+            note.holding = false;
+            note.processed = true;
+            if (Config.tailJudgement) {
+                const rawDiff = note.endTime - currentTime;
+                const { grade, timing } = this.determineJudge(rawDiff, windows);
+                this.registerHit(grade, timing, note.col);
+                if (grade !== 'MISS') this.trackTiming(rawDiff);
+            } else {
+                if (currentTime < note.endTime - windows.GOOD) {
+                    this.registerHit('MISS', '', note.col);
+                } else {
+                    this.registerHit('PERFECT', '', note.col);
+                }
+            }
+        }
+    }
+
+    registerHit(judge, timing, col = null) {
+        if(Config.mods.SD && judge === 'MISS') { this.failGame(); return; }
+        if(Config.mods.PF && (judge !== 'MARVELOUS' && judge !== 'PERFECT')) { this.failGame(); return; }
+
+        if (timing === 'FAST') this.stats.fast++;
+        if (timing === 'LATE') this.stats.late++;
+
+        if (judge === 'MISS') {
+            this.stats.combo = 0;
+            this.stats.miss++;
+            this.showJudge('Miss', 'judge-miss', '');
+            this.endFever();
+        } else if (judge === 'BAD') {
+            // BAD breaks combo but still gives minimal score
+            this.stats.combo = 0;
+            this.stats.bad++;
+            this.playHitSound(judge);
+            this.stats.score += 50;
+            this.showJudge(judge, 'judge-' + judge.toLowerCase(), timing);
+            if (col !== null) this.pulseReceptor(col, judge);
+            this.endFever();
+        } else {
+            this.stats.combo++;
+            if (this.stats.combo > this.stats.maxCombo) this.stats.maxCombo = this.stats.combo;
+            
+            if (Config.enableFever && this.stats.combo > 0 && this.stats.combo % 200 === 0) {
+                this.activateFever();
+            }
+            
+            this.playHitSound(judge);
+
+            let scoreBase = 0;
+            if (judge === 'MARVELOUS') { scoreBase = 320; this.stats.marvelous++; }
+            else if (judge === 'PERFECT') { scoreBase = 300; this.stats.perfect++; }
+            else if (judge === 'GREAT') { scoreBase = 200; this.stats.great++; }
+            else if (judge === 'GOOD') { scoreBase = 100; this.stats.good++; }
+            
+            if (this.feverActive) scoreBase *= 1.2;
+            
+            this.stats.score += Math.floor(scoreBase + Math.min(this.stats.combo, 50));
+            this.showJudge(judge, 'judge-' + judge.toLowerCase(), timing);
+            if (col !== null) this.pulseReceptor(col, judge);
+        }
+        this.updateHUD();
+        this.triggerComboAnim();
+    }
+    
+    failGame() {
+        if(Config.mods.NF) return;
+        alert("FAIL");
+        this.quitGame();
+    }
+
+    activateFever() {
+        if (this.feverActive) {
+            this.feverEndTime += 10000;
+        } else {
+            this.feverActive = true;
+            this.feverEndTime = this.getCurrentTime() + 10000;
+            document.getElementById('game-container').classList.add('fever-active');
+            this.ui.elements.feverText.classList.add('active');
+            this.ui.elements.feverBar.style.opacity = 1;
+            this.ui.elements.comboNum.classList.add('fever');
+        }
+    }
+
+    endFever() {
+        this.feverActive = false;
+        document.getElementById('game-container').classList.remove('fever-active');
+        this.ui.elements.feverText.classList.remove('active');
+        this.ui.elements.feverBar.style.opacity = 0;
+        this.ui.elements.comboNum.classList.remove('fever');
+        this.ui.elements.feverFill.style.width = '0%';
+    }
+
+    showJudge(text, cssClass, timing) {
+        const el = this.ui.elements.judge;
+        const main = this.ui.elements.judgeMain;
+        const sub = this.ui.elements.judgeTiming;
+
+        main.innerText = text;
+        main.className = '';
+        main.classList.add(cssClass);
+        
+        sub.innerText = timing || '';
+        sub.className = '';
+        if(timing === 'FAST') sub.classList.add('timing-fast');
+        if(timing === 'LATE') sub.classList.add('timing-late');
+
+        el.style.opacity = 1;
+        el.classList.remove('judge-show', 'judge-miss-anim');
+        void el.offsetWidth;
+        el.classList.add('judge-show');
+        if (String(text).toLowerCase() === 'miss') el.classList.add('judge-miss-anim');
+        
+        clearTimeout(this.judgeTimer);
+        this.judgeTimer = setTimeout(() => { el.style.opacity = 0; }, 400);
+    }
+
+    triggerComboAnim() {
+        if (this.stats.combo > 0) {
+            this.ui.elements.comboContainer.style.opacity = this.hideCombo ? 0 : 1;
+            this.ui.elements.comboNum.innerText = this.stats.combo;
+            
+            // 触发combo弹跳动画
+            this.ui.elements.comboContainer.classList.remove('combo-bump');
+            void this.ui.elements.comboContainer.offsetWidth; // 强制重绘
+            this.ui.elements.comboContainer.classList.add('combo-bump');
+            
+            // 整十combo额外强调
+            if (this.stats.combo % 50 === 0 && this.stats.combo > 0) {
+                this.ui.elements.comboNum.style.transform = 'scale(1.2)';
+                setTimeout(() => {
+                    this.ui.elements.comboNum.style.transform = 'scale(1)';
+                }, 150);
+            }
+        } else {
+            this.ui.elements.comboContainer.style.opacity = 0;
+        }
+    }
+
+    updateHUD() {
+        this.ui.elements.score.innerText = this.stats.score.toString().padStart(7, '0');
+        const total = this.stats.marvelous + this.stats.perfect + this.stats.great + this.stats.good + this.stats.bad + this.stats.miss;
+        const weighted = (this.stats.marvelous * 100 + this.stats.perfect * 100 + this.stats.great * 66 + this.stats.good * 33 + this.stats.bad * 10);
+        const acc = total > 0 ? (weighted / total).toFixed(2) : "100.00";
+        this.ui.elements.acc.innerText = acc + '%';
+        
+        this.ui.elements.hudMarv.innerText = this.stats.marvelous;
+        this.ui.elements.hudPerf.innerText = this.stats.perfect;
+        this.ui.elements.hudGreat.innerText = this.stats.great;
+        this.ui.elements.hudGood.innerText = this.stats.good;
+        this.ui.elements.hudBad.innerText = this.stats.bad;
+        this.ui.elements.hudMiss.innerText = this.stats.miss;
+    }
+
+    finish() {
+        if (this.finished) return;
+        this.finished = true;
+        if (this.audioSource) { try { this.audioSource.stop(); } catch(e){} }
+        this.showScreen('results');
+        this.updateBackgroundPreview();
+        this.endFever();
+        this.ui.elements.resultSongDisplay.innerText = `${this.songMetadata.artist} - ${this.songMetadata.title}`;
+        document.getElementById('end-score').innerText = this.stats.score;
+        document.getElementById('end-combo').innerText = this.stats.maxCombo;
+        document.getElementById('end-marvelous').innerText = this.stats.marvelous;
+        document.getElementById('end-perfect').innerText = this.stats.perfect;
+        document.getElementById('end-great').innerText = this.stats.great;
+        document.getElementById('end-good').innerText = this.stats.good;
+        document.getElementById('end-bad').innerText = this.stats.bad;
+        document.getElementById('end-miss').innerText = this.stats.miss;
+        document.getElementById('end-fast').innerText = this.stats.fast;
+        document.getElementById('end-late').innerText = this.stats.late;
+        const modTextEl = document.getElementById('result-mods');
+        if (modTextEl) {
+            const activeMods = Object.entries(Config.mods).filter(([, v]) => v).map(([k]) => k).join(', ');
+            modTextEl.innerText = 'Mods: ' + (activeMods || 'None');
+        }
+
+        const total = this.stats.marvelous + this.stats.perfect + this.stats.great + this.stats.good + this.stats.bad + this.stats.miss;
+        const scorePercent = total > 0 ? (this.stats.marvelous + this.stats.perfect + this.stats.great * 0.5 + this.stats.good * 0.2) / total : 0;
+        let grade = 'F';
+        if (scorePercent >= 0.98) grade = 'SS';
+        else if (scorePercent >= 0.95) grade = 'S';
+        else if (scorePercent >= 0.90) grade = 'A';
+        else if (scorePercent >= 0.80) grade = 'B';
+        else if (scorePercent >= 0.70) grade = 'C';
+        else grade = 'D';
+        document.getElementById('final-grade').innerText = grade;
+    }
+
+    loop(ts) {
+        requestAnimationFrame(this.loop);
+        const cap = Config.maxFps === 0 ? Infinity : Math.min(1000, Math.max(30, Config.maxFps || 60));
+        if (cap !== Infinity) {
+            const minDelta = 1000 / cap;
+            if (this.lastFrameTs && ts - this.lastFrameTs < minDelta) return;
+        }
+        this.lastFrameTs = ts;
+
+        if (Config.showFPS) {
+            const nowF = performance.now();
+            this.frameCount++;
+            if (nowF - this.lastFpsTime >= 1000) {
+                this.fpsEl.innerText = 'FPS: ' + this.frameCount;
+                this.frameCount = 0;
+                this.lastFpsTime = nowF;
+            }
+        }
+        if (this.gameState === 'PAUSED') return;
+        const now = this.audioCtx.currentTime;
+
+        // Synth logic
+        if (this.gameState === 'PLAYING' && !this.audioBuffer) {
+             while (this.synthNextNote < now + 0.1) {
+                 const beat = Math.floor(this.synthNextNote * 4); 
+                 this.playHitSound((beat % 4 === 0) ? 'PERFECT' : 'GOOD');
+                 this.synthNextNote += 0.5; 
+             }
+        }
+
+        if (this.gameState === 'PLAYING') {
+            const gameTime = this.getCurrentTime();
+            const windows = getWindows(Config.difficulty);
+            
+            // 先处理输入队列 (高优先级)
+            if (!Config.mods.AT) {
+                this.processInputQueue();
+                this.processBufferedHits(gameTime);
+            }
+            
+            // Auto mod - 优化使用列索引
+            if (Config.mods.AT) {
+                for (let col = 0; col < 4; col++) {
+                    const colNotes = this.notesByCol[col];
+                    const startIdx = this.colNextIndex[col];
+                    
+                    for (let i = startIdx; i < colNotes.length; i++) {
+                        const n = colNotes[i];
+                        
+                        // 普通 note 或 LN 头部判定
+                        if (!n.processed && !n.hit && gameTime >= n.time) {
+                            this.activeKeys[n.col] = true;
+                            this.keyEffects[n.col] = 1.0;
+                            this.checkHit(n.col, gameTime);
+                        }
+                        
+                        // LN 尾部释放
+                        if (n.holding && !n.processed && gameTime >= n.endTime) {
+                            this.activeKeys[n.col] = false;
+                            this.checkRelease(n.col);
+                        }
+                        
+                        // 如果 note 还没到时间，后面的也不用检查
+                        if (n.time > gameTime + 100) break;
+                    }
+                }
+            }
+
+            if (this.feverActive) {
+                const timeLeft = this.feverEndTime - gameTime;
+                if (timeLeft <= 0) this.endFever();
+                else {
+                    const pct = (timeLeft / 10000) * 100;
+                    this.ui.elements.feverFill.style.width = `${pct}%`;
+                }
+            }
+
+            // Progress bar
+            if (this.ui.elements.progressBar && this.songEndTimeMs > 0) {
+                const pct = Math.max(0, Math.min(100, (gameTime / this.songEndTimeMs) * 100));
+                this.ui.elements.progressBar.style.height = `${pct}%`;
+            }
+
+            // 优化的 Auto-MISS 检测 - 使用列索引
+            this.checkAutoMiss(gameTime, windows);
+            
+            // Auto finish check
+            if (!this.finished && this.songEndTimeMs > 0 && gameTime > this.songEndTimeMs) {
+                this.finish();
+            }
+
+            this.draw(gameTime);
+        } else {
+            this.draw(0);
+            if (this.ui.elements.progressBar) this.ui.elements.progressBar.style.height = '0%';
+        }
+    }
+    
+    // 优化的 Auto-MISS 检测
+    checkAutoMiss(gameTime, windows) {
+        for (let col = 0; col < 4; col++) {
+            const colNotes = this.notesByCol[col];
+            const startIdx = this.colNextIndex[col];
+            
+            for (let i = startIdx; i < colNotes.length; i++) {
+                const n = colNotes[i];
+                
+                // 如果 note 时间还没过判定窗口，后面的都不用检查
+                if (n.time > gameTime + windows.MISS) break;
+                
+                // 检查普通 note 是否 MISS
+                if (!n.processed && !n.holdHit && gameTime > n.time + windows.MISS) {
+                    n.processed = true;
+                    this.registerHit('MISS', '', n.col);
+                }
+                
+                // 检查长条尾部
+                if (n.holding && !n.processed) {
+                    if (gameTime >= n.endTime) {
+                        if (!Config.tailJudgement) {
+                            n.processed = true;
+                            n.holding = false;
+                            this.registerHit('PERFECT', '', n.col);
+                        } else if (gameTime > n.endTime + windows.MISS) {
+                            n.processed = true;
+                            n.holding = false;
+                            this.registerHit('MISS', '', n.col);
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    draw(gameTime) {
+        const W = this.canvas.width;
+        const H = this.canvas.height;
+        const ctx = this.ctx;
+        
+        if (Config.smoothTrail > 0) {
+            ctx.fillStyle = `rgba(255,255,255,${Config.smoothTrail})`;
+            ctx.fillRect(0, 0, W, H);
+        } else {
+            ctx.clearRect(0, 0, W, H);
+        }
+        
+        const laneFactor = Math.max(0, Math.min(1, Config.laneBrightness / 100));
+        const laneColorEven = this.tintColor('#FFF0F5', laneFactor);
+        const laneColorOdd = this.tintColor('#FFFFFF', laneFactor);
+        const laneStroke = this.tintColor('#FFE4E1', Math.max(0.2, laneFactor));
+        for (let i = 0; i < 4; i++) {
+            const x = i * this.colWidth;
+            ctx.fillStyle = i % 2 === 0 ? laneColorEven : laneColorOdd;
+            ctx.fillRect(x, 0, this.colWidth, H);
+            
+            if (this.keyEffects[i] > 0.01) {
+                const grad = ctx.createLinearGradient(0, this.hitY, 0, H);
+                grad.addColorStop(0, `rgba(255, 154, 162, ${this.keyEffects[i] * 0.8})`);
+                grad.addColorStop(1, 'rgba(255, 154, 162, 0)');
+                ctx.fillStyle = grad;
+                ctx.fillRect(x, this.hitY, this.colWidth, H - this.hitY);
+                this.keyEffects[i] *= 0.86;
+            }
+            ctx.strokeStyle = laneStroke;
+            ctx.beginPath();
+            ctx.moveTo(x, 0);
+            ctx.lineTo(x, H);
+            ctx.stroke();
+            // Add subtle texture when lanes are very dark to keep visuals pleasant
+            if (laneFactor < 0.1) {
+                ctx.fillStyle = 'rgba(255,255,255,0.04)';
+                ctx.fillRect(x, 0, this.colWidth, H);
+            }
+        }
+
+        for (let i = 0; i < 4; i++) {
+            const padX = i * this.colWidth + 8;
+            const padWidth = this.colWidth - 16;
+            const padHeight = 14 * this.receptorScale[i];
+            const padY = this.hitY + 6;
+            this.drawRoundedRect(ctx, padX, padY - padHeight, padWidth, padHeight, 8);
+            ctx.fillStyle = 'rgba(255,255,255,0.92)';
+            ctx.fill();
+            ctx.lineWidth = 1;
+            ctx.strokeStyle = 'rgba(0,0,0,0.05)';
+            this.drawRoundedRect(ctx, padX, padY - padHeight, padWidth, padHeight, 8);
+            ctx.stroke();
+
+            if (this.receptorGlow[i] > 0.01) {
+                ctx.save();
+                ctx.globalAlpha = this.receptorGlow[i];
+                const colColors = getNoteColors();
+                ctx.fillStyle = colColors[i];
+                this.drawRoundedRect(ctx, padX, padY - padHeight, padWidth, padHeight, 8);
+                ctx.fill();
+                ctx.restore();
+            }
+            this.receptorScale[i] += (1 - this.receptorScale[i]) * 0.2;
+            this.receptorGlow[i] *= 0.88;
+        }
+
+        ctx.fillStyle = this.feverActive ? '#FFD700' : '#FF85A2';
+        if (!Config.hideJudgeLine) {
+            // 判定线外发光
+            ctx.shadowColor = this.feverActive ? '#FFD700' : '#FF85A2';
+            ctx.shadowBlur = 8;
+            ctx.fillRect(0, this.hitY - 3, W, 6);
+            ctx.shadowBlur = 0;
+            // 判定线中心白线
+            ctx.fillStyle = 'rgba(255,255,255,0.8)';
+            ctx.fillRect(0, this.hitY - 1, W, 2);
+        }
+
+        if (this.gameState !== 'PLAYING') return;
+
+    const pixelSpeed = Config.baseSpeedPixels * Config.scrollSpeed;
+    const maxDelta = this.hitY / pixelSpeed + 200;
+    const colColors = getNoteColors();
+    
+    // 视觉时间与判定时间完全同步
+    const visualTime = this.getVisualTime();
+
+        for (const n of this.notes) {
+            const endTime = n.isHold ? n.endTime : n.time;
+            // 直接使用谱面时间，不做转换
+            const startDelta = n.time - visualTime;
+            const endDelta = endTime - visualTime;
+            
+            if (n.processed) continue;
+            if (endDelta < -200) continue; 
+            if (startDelta > maxDelta) break; 
+
+            const x = n.col * this.colWidth;
+            const w = this.colWidth;
+            let color = colColors[n.col];
+            
+            let alpha = 1.0;
+            // 使用视觉时间差来计算HD/FI效果
+            const dist = startDelta * pixelSpeed; // 转换为像素距离
+            if(Config.mods.HD) if(dist < 400) alpha = Math.max(0, dist / 400); 
+            if(Config.mods.FI) if(dist > 400) alpha = 0; else alpha = 1 - (dist / 400);
+
+            ctx.globalAlpha = alpha;
+
+            if (this.feverActive) {
+                ctx.shadowColor = '#FFD700';
+                ctx.shadowBlur = 10;
+            } else {
+                ctx.shadowBlur = 0;
+            }
+            
+            // Long Note 渲染
+            if (n.isHold) {
+                let yHead = this.hitY - startDelta * pixelSpeed;
+                let yTail = this.hitY - endDelta * pixelSpeed;
+                
+                if (n.holding) {
+                    yHead = this.hitY;
+                }
+
+                const bodyH = yHead - yTail;
+                const margin = 6;
+                const bodyWidth = w - margin * 2;
+                
+                if (bodyH > 0) {
+                    // LN Body - 半透明主体
+                    ctx.fillStyle = color + '99';
+                    ctx.fillRect(x + margin, yTail, bodyWidth, bodyH);
+                    
+                    // LN Body 左右边框线
+                    ctx.fillStyle = color;
+                    ctx.fillRect(x + margin, yTail, 3, bodyH);
+                    ctx.fillRect(x + w - margin - 3, yTail, 3, bodyH);
+                    
+                    // LN Body 中心渐变光效
+                    const bodyGrad = ctx.createLinearGradient(x + margin, 0, x + w - margin, 0);
+                    bodyGrad.addColorStop(0, 'rgba(255,255,255,0)');
+                    bodyGrad.addColorStop(0.5, 'rgba(255,255,255,0.15)');
+                    bodyGrad.addColorStop(1, 'rgba(255,255,255,0)');
+                    ctx.fillStyle = bodyGrad;
+                    ctx.fillRect(x + margin, yTail, bodyWidth, bodyH);
+                    
+                    // 按住时发光
+                    if (n.holding) {
+                        ctx.shadowColor = color;
+                        ctx.shadowBlur = 12;
+                        ctx.fillStyle = color + 'cc';
+                        ctx.fillRect(x + margin, yTail, bodyWidth, bodyH);
+                        ctx.shadowBlur = 0;
+                    }
+                }
+                
+                // LN Tail (尾部) - 小矩形
+                const tailH = 8;
+                ctx.fillStyle = color;
+                this.drawRoundedRect(ctx, x + margin, yTail - tailH/2, bodyWidth, tailH, 2);
+                ctx.fill();
+                // Tail 高光
+                ctx.fillStyle = 'rgba(255,255,255,0.4)';
+                ctx.fillRect(x + margin + 2, yTail - tailH/2, bodyWidth - 4, 2);
+            }
+
+            // 使用视觉时间计算note位置
+            let y = this.hitY - startDelta * pixelSpeed;
+            if (n.holding) y = this.hitY;
+
+            ctx.fillStyle = color;
+            ctx.strokeStyle = 'rgba(0,0,0,0.2)';
+            ctx.lineWidth = 1;
+
+            // ============ 皮肤渲染 ============
+            if (Config.skin === 'BAR') {
+                // 经典长条 - 手感最佳的基础皮肤
+                const h = 20;
+                const margin = 3;
+                // 主体
+                ctx.fillStyle = color;
+                this.drawRoundedRect(ctx, x + margin, y - h, w - margin * 2, h, 4);
+                ctx.fill();
+                // 顶部高光
+                ctx.fillStyle = 'rgba(255,255,255,0.45)';
+                this.drawRoundedRect(ctx, x + margin, y - h, w - margin * 2, 6, 4);
+                ctx.fill();
+                // 底部阴影线
+                ctx.fillStyle = 'rgba(0,0,0,0.2)';
+                ctx.fillRect(x + margin, y - 3, w - margin * 2, 3);
+            } else if (Config.skin === 'O2JAM') {
+                // O2Jam 经典风格 - 扁平矩形带渐变和边框
+                const h = 18;
+                const margin = 2;
+                // 外边框
+                ctx.fillStyle = 'rgba(255,255,255,0.9)';
+                ctx.fillRect(x + margin, y - h - 1, w - margin * 2, h + 2);
+                // 主体渐变
+                const grad = ctx.createLinearGradient(0, y - h, 0, y);
+                grad.addColorStop(0, this.lightenColor(color, 40));
+                grad.addColorStop(0.3, color);
+                grad.addColorStop(0.7, color);
+                grad.addColorStop(1, this.darkenColor(color, 30));
+                ctx.fillStyle = grad;
+                ctx.fillRect(x + margin + 1, y - h, w - margin * 2 - 2, h);
+                // 中心高光条
+                ctx.fillStyle = 'rgba(255,255,255,0.5)';
+                ctx.fillRect(x + margin + 3, y - h + 2, w - margin * 2 - 6, 3);
+            } else if (Config.skin === 'DJMAX') {
+                // DJMAX 风格 - 圆角矩形带光泽
+                const h = 22;
+                const margin = 4;
+                // 发光
+                ctx.shadowColor = color;
+                ctx.shadowBlur = 8;
+                // 主体
+                const grad = ctx.createLinearGradient(0, y - h, 0, y);
+                grad.addColorStop(0, 'rgba(255,255,255,0.8)');
+                grad.addColorStop(0.2, color);
+                grad.addColorStop(0.8, color);
+                grad.addColorStop(1, this.darkenColor(color, 40));
+                ctx.fillStyle = grad;
+                this.drawRoundedRect(ctx, x + margin, y - h, w - margin * 2, h, 6);
+                ctx.fill();
+                ctx.shadowBlur = 0;
+                // 玻璃高光
+                ctx.fillStyle = 'rgba(255,255,255,0.35)';
+                this.drawRoundedRect(ctx, x + margin + 2, y - h + 2, w - margin * 2 - 4, h * 0.35, 4);
+                ctx.fill();
+            } else if (Config.skin === 'OSU') {
+                // osu!mania 风格 - 简洁扁平
+                const h = 16;
+                const margin = 2;
+                // 主体
+                ctx.fillStyle = color;
+                ctx.fillRect(x + margin, y - h, w - margin * 2, h);
+                // 顶部白线
+                ctx.fillStyle = 'rgba(255,255,255,0.7)';
+                ctx.fillRect(x + margin, y - h, w - margin * 2, 2);
+                // 底部暗线
+                ctx.fillStyle = 'rgba(0,0,0,0.3)';
+                ctx.fillRect(x + margin, y - 2, w - margin * 2, 2);
+            } else if (Config.skin === 'ARROW') {
+                // DDR 箭头风格
+                const cx = x + w / 2;
+                const cy = y - 18;
+                const size = w * 0.7;
+                ctx.save();
+                ctx.translate(cx, cy);
+                const rots = [Math.PI / 2, Math.PI, 0, -Math.PI / 2];
+                ctx.rotate(rots[n.col]);
+                // 外发光
+                ctx.shadowColor = color;
+                ctx.shadowBlur = 10;
+                // 箭头形状
+                ctx.beginPath();
+                ctx.moveTo(0, -size / 2);
+                ctx.lineTo(size / 2, size / 4);
+                ctx.lineTo(size / 4, size / 4);
+                ctx.lineTo(size / 4, size / 2);
+                ctx.lineTo(-size / 4, size / 2);
+                ctx.lineTo(-size / 4, size / 4);
+                ctx.lineTo(-size / 2, size / 4);
+                ctx.closePath();
+                ctx.fillStyle = color;
+                ctx.fill();
+                ctx.strokeStyle = 'rgba(255,255,255,0.8)';
+                ctx.lineWidth = 2;
+                ctx.stroke();
+                ctx.shadowBlur = 0;
+                ctx.restore();
+            } else if (Config.skin === 'CIRCLE') {
+                // 圆形音符
+                const r = (w - 8) / 2;
+                const cx = x + w / 2;
+                const cy = y - r - 2;
+                // 外发光
+                ctx.shadowColor = color;
+                ctx.shadowBlur = 10;
+                // 主圆
+                ctx.beginPath();
+                ctx.arc(cx, cy, r, 0, Math.PI * 2);
+                ctx.fillStyle = color;
+                ctx.fill();
+                ctx.shadowBlur = 0;
+                // 内高光
+                ctx.fillStyle = 'rgba(255,255,255,0.5)';
+                ctx.beginPath();
+                ctx.arc(cx - r * 0.25, cy - r * 0.25, r * 0.4, 0, Math.PI * 2);
+                ctx.fill();
+                // 边框
+                ctx.strokeStyle = 'rgba(255,255,255,0.6)';
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                ctx.arc(cx, cy, r, 0, Math.PI * 2);
+                ctx.stroke();
+            } else if (Config.skin === 'DIAMOND') {
+                // 菱形音符
+                const size = w * 0.6;
+                const cx = x + w / 2;
+                const cy = y - size / 2 - 4;
+                ctx.save();
+                ctx.translate(cx, cy);
+                ctx.rotate(Math.PI / 4);
+                // 发光
+                ctx.shadowColor = color;
+                ctx.shadowBlur = 8;
+                // 主体
+                ctx.fillStyle = color;
+                ctx.fillRect(-size / 2, -size / 2, size, size);
+                ctx.shadowBlur = 0;
+                // 高光
+                ctx.fillStyle = 'rgba(255,255,255,0.4)';
+                ctx.fillRect(-size / 2, -size / 2, size, size / 2);
+                // 边框
+                ctx.strokeStyle = 'rgba(255,255,255,0.7)';
+                ctx.lineWidth = 2;
+                ctx.strokeRect(-size / 2, -size / 2, size, size);
+                ctx.restore();
+            } else if (Config.skin === 'PILL') {
+                // 胶囊型音符
+                const h = 28;
+                const margin = 6;
+                const radius = (w - margin * 2) / 2;
+                // 发光
+                ctx.shadowColor = color;
+                ctx.shadowBlur = 10;
+                // 主体
+                ctx.fillStyle = color;
+                this.drawRoundedRect(ctx, x + margin, y - h, w - margin * 2, h, radius);
+                ctx.fill();
+                ctx.shadowBlur = 0;
+                // 顶部高光
+                const grad = ctx.createLinearGradient(0, y - h, 0, y - h + h * 0.4);
+                grad.addColorStop(0, 'rgba(255,255,255,0.6)');
+                grad.addColorStop(1, 'rgba(255,255,255,0)');
+                ctx.fillStyle = grad;
+                this.drawRoundedRect(ctx, x + margin + 2, y - h + 2, w - margin * 2 - 4, h * 0.4, radius - 2);
+                ctx.fill();
+            } else if (Config.skin === 'NEON') {
+                // 霓虹发光效果
+                const h = 20;
+                const margin = 4;
+                // 强发光
+                ctx.shadowColor = color;
+                ctx.shadowBlur = 20;
+                // 主体 (半透明)
+                ctx.fillStyle = color + 'cc';
+                this.drawRoundedRect(ctx, x + margin, y - h, w - margin * 2, h, 6);
+                ctx.fill();
+                // 再画一次增强发光
+                ctx.shadowBlur = 10;
+                ctx.fill();
+                ctx.shadowBlur = 0;
+                // 中心亮线
+                ctx.fillStyle = 'rgba(255,255,255,0.9)';
+                ctx.fillRect(x + margin + 4, y - h / 2 - 1, w - margin * 2 - 8, 2);
+            } else if (Config.skin === 'RETRO') {
+                // 像素复古风格
+                const h = 20;
+                const margin = 4;
+                const pixelSize = 4;
+                // 黑色边框
+                ctx.fillStyle = '#000';
+                ctx.fillRect(x + margin - 2, y - h - 2, w - margin * 2 + 4, h + 4);
+                // 主色块
+                ctx.fillStyle = color;
+                ctx.fillRect(x + margin, y - h, w - margin * 2, h);
+                // 像素高光
+                ctx.fillStyle = 'rgba(255,255,255,0.5)';
+                ctx.fillRect(x + margin, y - h, w - margin * 2, pixelSize);
+                ctx.fillRect(x + margin, y - h, pixelSize, h);
+                // 像素阴影
+                ctx.fillStyle = 'rgba(0,0,0,0.4)';
+                ctx.fillRect(x + margin, y - pixelSize, w - margin * 2, pixelSize);
+                ctx.fillRect(x + w - margin - pixelSize, y - h, pixelSize, h);
+            }
+            
+            ctx.shadowBlur = 0;
+            ctx.globalAlpha = 1.0;
+        }
+        
+        // 渲染击中粒子效果 (osu mania style)
+        this.updateAndDrawParticles(ctx);
+        
+        // 渲染 Hit Error Bar
+        this.drawHitErrorBar(ctx, W, H);
+        
+        if(Config.mods.FL) {
+            ctx.fillStyle = 'black';
+            ctx.beginPath();
+            ctx.rect(0, 0, W, H);
+            const centerX = this.colWidth * 2; 
+            ctx.arc(centerX, this.hitY, 250, 0, Math.PI*2, true);
+            ctx.fill();
+        }
+    }
+    
+    // Hit Error Bar - 打击误差指示器 (可爱版)
+    drawHitErrorBar(ctx, W, H) {
+        const barWidth = 360;
+        const barHeight = 14;
+        const barX = (W - barWidth) / 2;
+        const barY = H - 55;
+        const maxMs = 100;
+        const now = performance.now();
+        const markLifetime = 2500;
+        
+        ctx.save();
+        
+        // 可爱的圆角背景 (樱花粉调)
+        ctx.fillStyle = 'rgba(255, 240, 245, 0.4)';
+        this.drawRoundedRect(ctx, barX - 8, barY - 8, barWidth + 16, barHeight + 16, 12);
+        ctx.fill();
+        
+        // 内部渐变条 - 左边薄荷绿(快), 右边樱花粉(慢)
+        const gradLeft = ctx.createLinearGradient(barX, 0, barX + barWidth/2, 0);
+        gradLeft.addColorStop(0, 'rgba(168, 230, 207, 0.6)'); // 薄荷绿
+        gradLeft.addColorStop(1, 'rgba(255, 255, 255, 0.2)');
+        ctx.fillStyle = gradLeft;
+        this.drawRoundedRect(ctx, barX, barY, barWidth/2, barHeight, 7);
+        ctx.fill();
+        
+        const gradRight = ctx.createLinearGradient(barX + barWidth/2, 0, barX + barWidth, 0);
+        gradRight.addColorStop(0, 'rgba(255, 255, 255, 0.2)');
+        gradRight.addColorStop(1, 'rgba(255, 154, 162, 0.6)'); // 樱花粉
+        ctx.fillStyle = gradRight;
+        this.drawRoundedRect(ctx, barX + barWidth/2, barY, barWidth/2, barHeight, 7);
+        ctx.fill();
+        
+        // 中心小爱心标记 ♡
+        const centerX = barX + barWidth/2;
+        const centerY = barY + barHeight/2;
+        ctx.fillStyle = 'rgba(255, 133, 162, 0.9)';
+        ctx.font = '16px Arial';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText('♡', centerX, centerY);
+        
+        // 判定区域 - 用小圆点标记
+        const windows = getWindows(Config.difficulty);
+        const marvelousWidth = (windows.MARVELOUS / maxMs) * (barWidth / 2);
+        const perfectWidth = (windows.PERFECT / maxMs) * (barWidth / 2);
+        
+        // MARVELOUS 区域小星星 ✦
+        ctx.fillStyle = 'rgba(255, 215, 0, 0.7)';
+        ctx.font = '10px Arial';
+        ctx.fillText('✦', centerX - marvelousWidth, centerY);
+        ctx.fillText('✦', centerX + marvelousWidth, centerY);
+        
+        // 绘制误差标记 - 小圆点 (使用对象池回收)
+        for (let i = this.hitErrorMarks.length - 1; i >= 0; i--) {
+            const mark = this.hitErrorMarks[i];
+            const age = now - mark.timestamp;
+            
+            if (age > markLifetime) {
+                HitErrorPool.release(mark);
+                this.hitErrorMarks.splice(i, 1);
+                continue;
+            }
+            
+            const alpha = (1 - (age / markLifetime)) * 0.9;
+            const normalizedDiff = Math.max(-maxMs, Math.min(maxMs, mark.diff));
+            const markX = barX + barWidth/2 - (normalizedDiff / maxMs) * (barWidth / 2);
+            
+            // 可爱的圆点标记
+            let markColor, glowColor;
+            if (mark.grade === 'MARVELOUS') {
+                markColor = `rgba(255, 215, 0, ${alpha})`;
+                glowColor = '#FFD700';
+            } else if (mark.diff > 0) {
+                markColor = `rgba(168, 230, 207, ${alpha})`; // 薄荷绿
+                glowColor = '#A8E6CF';
+            } else {
+                markColor = `rgba(255, 154, 162, ${alpha})`; // 樱花粉
+                glowColor = '#FF9AA2';
+            }
+            
+            // 发光圆点
+            const radius = mark.grade === 'MARVELOUS' ? 6 : 5;
+            
+            if (age < 500) {
+                ctx.shadowColor = glowColor;
+                ctx.shadowBlur = 12;
+            }
+            
+            ctx.beginPath();
+            ctx.arc(markX, barY + barHeight/2, radius * (0.7 + alpha * 0.3), 0, Math.PI * 2);
+            ctx.fillStyle = markColor;
+            ctx.fill();
+            
+            // 小高光
+            ctx.beginPath();
+            ctx.arc(markX - 1.5, barY + barHeight/2 - 1.5, radius * 0.3, 0, Math.PI * 2);
+            ctx.fillStyle = `rgba(255, 255, 255, ${alpha * 0.6})`;
+            ctx.fill();
+            
+            ctx.shadowBlur = 0;
+        }
+        
+        // 可爱的标签文字
+        ctx.font = 'bold 11px "Segoe UI", Arial, sans-serif';
+        ctx.textBaseline = 'top';
+        
+        ctx.fillStyle = 'rgba(168, 230, 207, 0.9)';
+        ctx.textAlign = 'left';
+        ctx.fillText('♪ 快', barX + 8, barY + barHeight + 8);
+        
+        ctx.fillStyle = 'rgba(255, 154, 162, 0.9)';
+        ctx.textAlign = 'right';
+        ctx.fillText('慢 ♪', barX + barWidth - 8, barY + barHeight + 8);
+        
+        ctx.restore();
+    }
+    
+    // 更新和渲染击中粒子 - 使用对象池回收
+    updateAndDrawParticles(ctx) {
+        for (let i = this.hitParticles.length - 1; i >= 0; i--) {
+            const p = this.hitParticles[i];
+            
+            // 更新位置和生命
+            p.x += p.vx;
+            p.y += p.vy;
+            p.vy += 0.3; // 重力
+            p.life -= p.decay;
+            
+            if (p.life <= 0) {
+                // 回收到对象池
+                ParticlePool.release(p);
+                this.hitParticles.splice(i, 1);
+                continue;
+            }
+            
+            // 绘制粒子
+            ctx.save();
+            ctx.globalAlpha = p.life * 0.8;
+            
+            // 根据判定等级添加发光效果
+            if (p.judge === 'MARVELOUS' || p.judge === 'PERFECT') {
+                ctx.shadowColor = p.color;
+                ctx.shadowBlur = 8;
+            }
+            
+            ctx.fillStyle = p.color;
+            ctx.beginPath();
+            ctx.arc(p.x, p.y, p.size * p.life, 0, Math.PI * 2);
+            ctx.fill();
+            
+            // Marvelous时添加额外的星形效果
+            if (p.judge === 'MARVELOUS') {
+                ctx.strokeStyle = 'rgba(255,255,255,0.6)';
+                ctx.lineWidth = 1;
+                ctx.beginPath();
+                const starSize = p.size * p.life * 1.5;
+                for (let j = 0; j < 4; j++) {
+                    const angle = (j / 4) * Math.PI * 2 + p.life * 2;
+                    ctx.moveTo(p.x, p.y);
+                    ctx.lineTo(p.x + Math.cos(angle) * starSize, p.y + Math.sin(angle) * starSize);
+                }
+                ctx.stroke();
+            }
+            
+            ctx.restore();
+        }
+    }
+
+    drawRoundedRect(ctx, x, y, w, h, r) {
+        if (w < 2 * r) r = w / 2;
+        if (h < 2 * r) r = h / 2;
+        ctx.beginPath();
+        ctx.moveTo(x + r, y);
+        ctx.arcTo(x + w, y, x + w, y + h, r);
+        ctx.arcTo(x + w, y + h, x, y + h, r);
+        ctx.arcTo(x, y + h, x, y, r);
+        ctx.arcTo(x, y, x + w, y, r);
+        ctx.closePath();
+    }
+    
+    // 颜色变亮
+    lightenColor(hex, percent) {
+        const num = parseInt(hex.replace('#', ''), 16);
+        const r = Math.min(255, (num >> 16) + Math.round(2.55 * percent));
+        const g = Math.min(255, ((num >> 8) & 0x00FF) + Math.round(2.55 * percent));
+        const b = Math.min(255, (num & 0x0000FF) + Math.round(2.55 * percent));
+        return '#' + (0x1000000 + r * 0x10000 + g * 0x100 + b).toString(16).slice(1);
+    }
+    
+    // 颜色变暗
+    darkenColor(hex, percent) {
+        const num = parseInt(hex.replace('#', ''), 16);
+        const r = Math.max(0, (num >> 16) - Math.round(2.55 * percent));
+        const g = Math.max(0, ((num >> 8) & 0x00FF) - Math.round(2.55 * percent));
+        const b = Math.max(0, (num & 0x0000FF) - Math.round(2.55 * percent));
+        return '#' + (0x1000000 + r * 0x10000 + g * 0x100 + b).toString(16).slice(1);
+    }
+}
+
+// 创建可爱的漂浮元素
+function createFloatingElements() {
+    const container = document.getElementById('floating-elements');
+    if (!container) return;
+    
+    // 心形 SVG
+    const heartSVG = `<svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>`;
+    
+    // 星星 SVG
+    const starSVG = `<svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>`;
+    
+    // 云朵 SVG
+    const cloudSVG = `<svg viewBox="0 0 64 40" fill="currentColor"><ellipse cx="20" cy="28" rx="16" ry="12"/><ellipse cx="44" cy="28" rx="16" ry="12"/><ellipse cx="32" cy="20" rx="18" ry="14"/><ellipse cx="18" cy="22" rx="10" ry="8"/><ellipse cx="46" cy="22" rx="10" ry="8"/></svg>`;
+    
+    // 花朵 SVG
+    const flowerSVG = `<svg viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="12" r="4" fill="#FFD93D"/><ellipse cx="12" cy="4" rx="3" ry="4"/><ellipse cx="12" cy="20" rx="3" ry="4"/><ellipse cx="4" cy="12" rx="4" ry="3"/><ellipse cx="20" cy="12" rx="4" ry="3"/><ellipse cx="6" cy="6" rx="3" ry="4" transform="rotate(45 6 6)"/><ellipse cx="18" cy="6" rx="3" ry="4" transform="rotate(-45 18 6)"/><ellipse cx="6" cy="18" rx="3" ry="4" transform="rotate(-45 6 18)"/><ellipse cx="18" cy="18" rx="3" ry="4" transform="rotate(45 18 18)"/></svg>`;
+    
+    const colors = ['#FF85A2', '#FFB7C5', '#FFC4D6', '#FFD8CC', '#A8E6CF', '#FFD93D'];
+    
+    // 创建心形
+    for (let i = 0; i < 8; i++) {
+        const heart = document.createElement('div');
+        heart.className = 'floating-heart';
+        heart.innerHTML = heartSVG;
+        heart.style.left = Math.random() * 100 + '%';
+        heart.style.animationDelay = Math.random() * 12 + 's';
+        heart.style.animationDuration = (10 + Math.random() * 8) + 's';
+        heart.style.color = colors[Math.floor(Math.random() * 3)];
+        heart.style.width = (18 + Math.random() * 16) + 'px';
+        heart.style.opacity = 0.6 + Math.random() * 0.4;
+        container.appendChild(heart);
+    }
+    
+    // 创建星星
+    for (let i = 0; i < 6; i++) {
+        const star = document.createElement('div');
+        star.className = 'floating-star';
+        star.innerHTML = starSVG;
+        star.style.left = Math.random() * 100 + '%';
+        star.style.animationDelay = Math.random() * 15 + 's';
+        star.style.animationDuration = (12 + Math.random() * 10) + 's';
+        star.style.color = colors[3 + Math.floor(Math.random() * 3)];
+        star.style.width = (14 + Math.random() * 12) + 'px';
+        star.style.opacity = 0.5 + Math.random() * 0.5;
+        container.appendChild(star);
+    }
+    
+    // 创建云朵
+    for (let i = 0; i < 3; i++) {
+        const cloud = document.createElement('div');
+        cloud.className = 'floating-cloud';
+        cloud.innerHTML = cloudSVG;
+        cloud.style.top = (5 + Math.random() * 30) + '%';
+        cloud.style.animationDelay = i * 15 + 's';
+        cloud.style.animationDuration = (40 + Math.random() * 20) + 's';
+        cloud.style.width = (60 + Math.random() * 40) + 'px';
+        cloud.style.opacity = 0.4 + Math.random() * 0.3;
+        container.appendChild(cloud);
+    }
+    
+    // 创建花朵
+    for (let i = 0; i < 5; i++) {
+        const flower = document.createElement('div');
+        flower.className = 'floating-heart';
+        flower.innerHTML = flowerSVG;
+        flower.style.left = Math.random() * 100 + '%';
+        flower.style.animationDelay = Math.random() * 10 + 's';
+        flower.style.animationDuration = (14 + Math.random() * 8) + 's';
+        flower.style.color = colors[Math.floor(Math.random() * 3)];
+        flower.style.width = (20 + Math.random() * 14) + 'px';
+        flower.style.opacity = 0.5 + Math.random() * 0.4;
+        container.appendChild(flower);
+    }
+    
+    // 创建闪光点
+    for (let i = 0; i < 15; i++) {
+        const sparkle = document.createElement('div');
+        sparkle.className = 'floating-sparkle';
+        sparkle.style.left = Math.random() * 100 + '%';
+        sparkle.style.top = Math.random() * 100 + '%';
+        sparkle.style.animationDelay = Math.random() * 3 + 's';
+        sparkle.style.animationDuration = (2 + Math.random() * 2) + 's';
+        sparkle.style.width = (4 + Math.random() * 8) + 'px';
+        sparkle.style.height = sparkle.style.width;
+        container.appendChild(sparkle);
+    }
+    
+    // 音游元素 - 音符 ♪ ♫
+    const noteSVG = `<svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z"/></svg>`;
+    const doubleNoteSVG = `<svg viewBox="0 0 24 24" fill="currentColor"><path d="M21 3v10.5c-.63-.32-1.3-.5-2-.5-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V6h-5V3H21zm-14 0v10.5c-.63-.32-1.3-.5-2-.5-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V6H6V3H7z"/></svg>`;
+    
+    // 添加音符装饰
+    for (let i = 0; i < 5; i++) {
+        const note = document.createElement('div');
+        note.className = 'floating-note';
+        note.innerHTML = Math.random() > 0.5 ? noteSVG : doubleNoteSVG;
+        note.style.left = Math.random() * 100 + '%';
+        note.style.animationDelay = Math.random() * 8 + 's';
+        note.style.animationDuration = (12 + Math.random() * 8) + 's';
+        note.style.color = colors[Math.floor(Math.random() * colors.length)];
+        note.style.width = (20 + Math.random() * 16) + 'px';
+        note.style.opacity = 0.4 + Math.random() * 0.3;
+        container.appendChild(note);
+    }
+    
+    // 节拍圈 - 像节奏游戏的判定圈
+    for (let i = 0; i < 4; i++) {
+        const beatCircle = document.createElement('div');
+        beatCircle.className = 'beat-circle';
+        beatCircle.style.left = (10 + Math.random() * 80) + '%';
+        beatCircle.style.top = (10 + Math.random() * 80) + '%';
+        beatCircle.style.animationDelay = i * 1.5 + 's';
+        beatCircle.style.borderColor = colors[Math.floor(Math.random() * colors.length)];
+        container.appendChild(beatCircle);
+    }
+    
+    // 音波扩散效果
+    for (let i = 0; i < 3; i++) {
+        const wave = document.createElement('div');
+        wave.className = 'sound-wave';
+        wave.style.left = (20 + Math.random() * 60) + '%';
+        wave.style.top = (30 + Math.random() * 40) + '%';
+        wave.style.animationDelay = i * 2 + 's';
+        wave.style.borderColor = colors[Math.floor(Math.random() * 3)] + '60';
+        container.appendChild(wave);
+    }
+}
+
+// 创建樱花飘落效果
+function createSakuraPetals() {
+    const container = document.getElementById('sakura-container');
+    if (!container) return;
+    
+    // 樱花颜色变体
+    const sakuraColors = [
+        'radial-gradient(ellipse at 30% 30%, #FFE4EC 0%, #FFB7C5 50%, #FF85A2 100%)',
+        'radial-gradient(ellipse at 30% 30%, #FFF0F5 0%, #FFD6E0 50%, #FFB7C5 100%)',
+        'radial-gradient(ellipse at 30% 30%, #FFE8F0 0%, #FFC4D6 50%, #FF9AAF 100%)',
+        'radial-gradient(ellipse at 30% 30%, #FFFFFF 0%, #FFE4EC 50%, #FFD0DC 100%)'
+    ];
+    
+    // 创建樱花花瓣
+    for (let i = 0; i < 25; i++) {
+        const petal = document.createElement('div');
+        petal.className = 'sakura-petal';
+        petal.style.left = Math.random() * 100 + '%';
+        petal.style.background = sakuraColors[Math.floor(Math.random() * sakuraColors.length)];
+        petal.style.width = (8 + Math.random() * 10) + 'px';
+        petal.style.height = petal.style.width;
+        
+        // 随机动画参数
+        const duration = 8 + Math.random() * 12;
+        const delay = Math.random() * duration;
+        const swayAmount = 30 + Math.random() * 60;
+        
+        petal.style.animationDuration = duration + 's';
+        petal.style.animationDelay = -delay + 's';
+        
+        // 自定义摇摆动画
+        petal.style.setProperty('--sway', swayAmount + 'px');
+        
+        container.appendChild(petal);
+    }
+}
+
+// 初始化漂浮元素和樱花
+document.addEventListener('DOMContentLoaded', () => {
+    createFloatingElements();
+    createSakuraPetals();
+});
+
+window.onload = () => new GameEngine();
+</script>
+</body>
+</html>
