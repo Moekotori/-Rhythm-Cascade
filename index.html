@@ -1293,12 +1293,70 @@
             color: #888;
             font-size: 0.8rem;
         }
+
+        /* Toast 通知样式 */
+        #toast-container {
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 99999;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            pointer-events: none;
+        }
+        .toast-item {
+            background: linear-gradient(135deg, rgba(255,245,250,0.98), rgba(255,230,240,0.95));
+            border: 2px solid var(--secondary);
+            border-radius: 16px;
+            padding: 14px 24px;
+            box-shadow: 0 8px 25px rgba(255,133,162,0.25), 0 2px 8px rgba(0,0,0,0.1);
+            backdrop-filter: blur(10px);
+            animation: toastIn 0.35s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+            max-width: 400px;
+            text-align: center;
+            pointer-events: auto;
+        }
+        .toast-item.toast-out {
+            animation: toastOut 0.3s ease-in forwards;
+        }
+        .toast-item.toast-success {
+            border-color: var(--accent);
+            background: linear-gradient(135deg, rgba(240,255,245,0.98), rgba(200,245,220,0.95));
+        }
+        .toast-item.toast-error {
+            border-color: #FF6B8A;
+            background: linear-gradient(135deg, rgba(255,240,240,0.98), rgba(255,220,225,0.95));
+        }
+        .toast-title {
+            font-weight: 700;
+            font-size: 1rem;
+            color: var(--text-color);
+            margin-bottom: 4px;
+        }
+        .toast-message {
+            font-size: 0.9rem;
+            color: #7a6a7a;
+            line-height: 1.4;
+        }
+        @keyframes toastIn {
+            0% { opacity: 0; transform: translateY(-30px) scale(0.9); }
+            100% { opacity: 1; transform: translateY(0) scale(1); }
+        }
+        @keyframes toastOut {
+            0% { opacity: 1; transform: translateY(0) scale(1); }
+            100% { opacity: 0; transform: translateY(-20px) scale(0.9); }
+        }
     </style>
 </head>
 <body>
 
 <div id="floating-elements"></div>
 <div id="bg-dim-layer"></div>
+
+<!-- Toast 通知容器 -->
+<div id="toast-container"></div>
 
 <div id="sakura-container"></div>
 
@@ -1394,6 +1452,12 @@
              <button class="btn btn-secondary" id="settings-btn" style="min-width: 150px;">SETTINGS</button>
         </div>
         <input type="file" id="osz-input" accept=".osz,.zip" style="display:none">
+        
+        <!-- 可爱小提示 -->
+        <div style="margin-top: 18px; padding: 10px 18px; background: linear-gradient(135deg, rgba(255,220,230,0.7), rgba(255,240,245,0.8)); border-radius: 12px; border: 1.5px dashed #FFB7C5; font-size: 0.8rem; color: #9a7a8a; max-width: 280px;">
+            <span style="font-size: 1rem;">💡</span> 按 <b style="color:#FF85A2;">F11</b> 可以全屏~<br>
+            <span style="font-size: 1rem;">🖱️</span> 鼠标滚轮可以调节尺寸哦！
+        </div>
     </div>
     
     <div id="mods-screen" class="ui-layer">
@@ -1624,6 +1688,30 @@
 
 <script>
 /**
+ * Toast 通知系统 - 替代丑陋的alert弹窗
+ */
+function showToast(title, message = '', type = 'info', duration = 3000) {
+    const container = document.getElementById('toast-container');
+    if (!container) return;
+    
+    const toast = document.createElement('div');
+    toast.className = 'toast-item' + (type === 'success' ? ' toast-success' : type === 'error' ? ' toast-error' : '');
+    
+    let html = '';
+    if (title) html += `<div class="toast-title">${title}</div>`;
+    if (message) html += `<div class="toast-message">${message}</div>`;
+    toast.innerHTML = html;
+    
+    container.appendChild(toast);
+    
+    // 自动移除
+    setTimeout(() => {
+        toast.classList.add('toast-out');
+        setTimeout(() => toast.remove(), 300);
+    }, duration);
+}
+
+/**
  * CONFIGURATION & STATE
  */
 const Config = {
@@ -1635,8 +1723,8 @@ const Config = {
     keyDisplay: ['D', 'F', 'J', 'K'],
     keybinds_sys: { restart: 'Backquote', hideCombo: 'Backslash' },
     keyDisplay_sys: { restart: '`', hideCombo: '\\' },
-    skin: 'BAR', 
-    difficulty: 4, 
+    skin: 'CIRCLE', 
+    difficulty: 2,  // J2 judgement
     tailJudgement: false,
     enableFever: true,
     enableHitSounds: true,
@@ -1645,8 +1733,8 @@ const Config = {
     laneBrightness: 100,
     maxFps: 120,
     showFPS: false,
-    smoothTrail: 0.06,
-    noteColors: ['#FF9AA2', '#B5EAD7', '#B5EAD7', '#FF9AA2'],
+    smoothTrail: 0, // 设为0禁用拖影效果
+    noteColors: ['#FFFFFF', '#FFFFFF', '#FFFFFF', '#FFFFFF'],
     audioPrewarm: true,
     autoOffsetSuggest: true,
     hideJudgeLine: false, // 隐藏判定线
@@ -2465,7 +2553,14 @@ class GameEngine {
         const $ = (id) => document.getElementById(id);
         $('start-btn').addEventListener('click', () => this.start());
         $('restart-btn').addEventListener('click', () => this.start());
-        $('results-menu-btn').addEventListener('click', () => this.showScreen('start'));
+        $('results-menu-btn').addEventListener('click', () => {
+            // 点击Menu时停止音乐
+            if (this.audioSource) { 
+                try { this.audioSource.stop(); } catch(e){} 
+                this.audioSource = null;
+            }
+            this.showScreen('start');
+        });
         $('settings-btn').addEventListener('click', () => { this.updateSettingsUI(); this.showScreen('settings'); });
         $('mods-btn').addEventListener('click', () => { this.updateSettingsUI(); this.showScreen('mods'); });
         $('mods-back-btn').addEventListener('click', () => this.showScreen('start'));
@@ -2548,7 +2643,7 @@ class GameEngine {
                 if (!Config.autoOffsetSuggest) return;
                 const lat = this.audioCtx?.outputLatency;
                 if (typeof lat !== 'number' || !isFinite(lat) || lat <= 0) {
-                    alert('This browser does not expose outputLatency. Please use manual offset.');
+                    showToast('⚠️ 无法自动检测', '浏览器不支持 outputLatency，请手动设置', 'error', 3000);
                     return;
                 }
                 const ms = Math.round(lat * 1000);
@@ -2742,7 +2837,7 @@ class GameEngine {
                 const audioData = await zip.file(zipAudioName).async("arraybuffer");
                 this.audioBuffer = await this.audioCtx.decodeAudioData(audioData);
             } else {
-                alert("Audio file not found in zip, using synthesizer.");
+                showToast("⚠️ 音频未找到", "将使用合成器代替", "error", 3000);
                 this.audioBuffer = null;
             }
 
@@ -2751,11 +2846,11 @@ class GameEngine {
             
             $('loading-overlay').style.display = 'none';
             this.showScreen('start');
-            alert(`Loaded: ${metadata.title}\nNotes: ${this.notes.length}`);
+            showToast("✅ 加载成功", `${metadata.title}\n${this.notes.length} 个音符`, "success", 2500);
 
         } catch (err) {
             console.error(err);
-            alert("Error: " + err.message);
+            showToast("❌ 加载失败", err.message, "error", 4000);
             $('loading-overlay').style.display = 'none';
             this.generateProceduralMap();
         }
@@ -2987,7 +3082,8 @@ class GameEngine {
             this.audioSource.buffer = this.audioBuffer;
             this.audioSource.connect(this.audioCtx.destination);
             this.audioSource.playbackRate.value = rate;
-            this.audioSource.onended = () => { if (!this.finished) this.finish(); };
+            // 不在音乐结束时触发finish，而是让谱面结束时触发，音乐继续播放
+            // this.audioSource.onended = () => { if (!this.finished) this.finish(); };
             this.audioSource.start(this.startTime);
         } else {
             this.synthNextNote = this.startTime;
@@ -3154,9 +3250,10 @@ class GameEngine {
     getCurrentTime() {
         let rawTime = this.audioCtx.currentTime - this.startTime;
         let rate = this.getTimeRate();
-        // 游戏时间 = 音频经过时间 * 播放速率 + 偏移
-        // 正 offset = 音乐延迟，需要晚按 = 判定时间更大
-        return (rawTime * rate * 1000) + Config.offset;
+        // 游戏时间 = 音频经过时间 * 播放速率 - 偏移
+        // 正 offset = 补偿音频延迟，让判定窗口提前
+        // 如果你总是LATE，增加正offset；如果总是FAST，增加负offset
+        return (rawTime * rate * 1000) - Config.offset;
     }
 
     // 获取用于绘制的视觉时间（与判定时间相同，保证视觉与判定同步）
@@ -3372,14 +3469,10 @@ class GameEngine {
             const tail = this.notes[this.notes.length - 1];
             last = Math.max(tail.endTime || tail.time || 0, tail.time || 0);
         }
-        let audioEnd = 0;
-        if (this.audioBuffer) {
-            audioEnd = (this.audioBuffer.duration * 1000) / rate;
-        }
+        // 只基于最后一个note确定谱面结束时间，音乐会继续播放
         // Add small buffer so results have time to settle
-        const base = Math.max(last, audioEnd);
-        if (base === 0) return 60000; // fallback 60s if map empty
-        return base + 1200;
+        if (last === 0) return 60000; // fallback 60s if map empty
+        return last + 1500; // 最后一个note后1.5秒显示结果
     }
 
     pulseReceptor(col, judge) {
@@ -3544,8 +3637,8 @@ class GameEngine {
     
     failGame() {
         if(Config.mods.NF) return;
-        alert("FAIL");
-        this.quitGame();
+        showToast("💔 FAILED", "游戏结束", "error", 2000);
+        setTimeout(() => this.quitGame(), 1500);
     }
 
     activateFever() {
@@ -3634,7 +3727,8 @@ class GameEngine {
     finish() {
         if (this.finished) return;
         this.finished = true;
-        if (this.audioSource) { try { this.audioSource.stop(); } catch(e){} }
+        // 不停止音乐，让它继续播放直到玩家点击Menu
+        // if (this.audioSource) { try { this.audioSource.stop(); } catch(e){} }
         this.showScreen('results');
         this.updateBackgroundPreview();
         this.endFever();
@@ -3668,11 +3762,23 @@ class GameEngine {
     }
 
     loop(ts) {
-        requestAnimationFrame(this.loop);
-        const cap = Config.maxFps === 0 ? Infinity : Math.min(1000, Math.max(30, Config.maxFps || 60));
-        if (cap !== Infinity) {
-            const minDelta = 1000 / cap;
-            if (this.lastFrameTs && ts - this.lastFrameTs < minDelta) return;
+        const cap = Config.maxFps;
+        const screenRefreshRate = 320; // 大约值，实际由浏览器决定
+        
+        // 高帧率模式：超过屏幕刷新率时用setTimeout突破VSync限制
+        if (cap > screenRefreshRate || cap === 0) {
+            // 使用setTimeout突破VSync，但对于cap=0保持最快速度
+            const targetDelay = cap === 0 ? 0 : Math.max(0, 1000 / cap);
+            setTimeout(() => this.loop(performance.now()), targetDelay);
+        } else {
+            // 正常帧率：使用requestAnimationFrame
+            requestAnimationFrame(this.loop);
+            
+            // 帧率限制检查
+            if (cap > 0 && cap < screenRefreshRate) {
+                const minDelta = 1000 / cap;
+                if (this.lastFrameTs && ts - this.lastFrameTs < minDelta) return;
+            }
         }
         this.lastFrameTs = ts;
 
@@ -3806,12 +3912,18 @@ class GameEngine {
         const H = this.canvas.height;
         const ctx = this.ctx;
         
-        if (Config.smoothTrail > 0) {
-            ctx.fillStyle = `rgba(255,255,255,${Config.smoothTrail})`;
-            ctx.fillRect(0, 0, W, H);
-        } else {
-            ctx.clearRect(0, 0, W, H);
-        }
+        // 【重要】每帧必须完全清除画布，防止重影
+        // 先重置所有状态
+        ctx.globalAlpha = 1.0;
+        ctx.shadowBlur = 0;
+        ctx.shadowColor = 'transparent';
+        
+        // 完全清除整个画布
+        ctx.clearRect(0, 0, W, H);
+        
+        // 再用不透明白色填充背景，确保没有任何残留
+        ctx.fillStyle = '#FFFFFF';
+        ctx.fillRect(0, 0, W, H);
         
         const laneFactor = Math.max(0, Math.min(1, Config.laneBrightness / 100));
         const laneColorEven = this.tintColor('#FFF0F5', laneFactor);
@@ -3870,11 +3982,8 @@ class GameEngine {
 
         ctx.fillStyle = this.feverActive ? '#FFD700' : '#FF85A2';
         if (!Config.hideJudgeLine) {
-            // 判定线外发光
-            ctx.shadowColor = this.feverActive ? '#FFD700' : '#FF85A2';
-            ctx.shadowBlur = 8;
+            // 判定线（不使用shadowBlur）
             ctx.fillRect(0, this.hitY - 3, W, 6);
-            ctx.shadowBlur = 0;
             // 判定线中心白线
             ctx.fillStyle = 'rgba(255,255,255,0.8)';
             ctx.fillRect(0, this.hitY - 1, W, 2);
@@ -3910,13 +4019,9 @@ class GameEngine {
             if(Config.mods.FI) if(dist > 400) alpha = 0; else alpha = 1 - (dist / 400);
 
             ctx.globalAlpha = alpha;
-
-            if (this.feverActive) {
-                ctx.shadowColor = '#FFD700';
-                ctx.shadowBlur = 10;
-            } else {
-                ctx.shadowBlur = 0;
-            }
+            
+            // 【重要】禁用所有shadowBlur，这是重影的主要原因
+            ctx.shadowBlur = 0;
             
             // Long Note 渲染
             if (n.isHold) {
@@ -3949,13 +4054,10 @@ class GameEngine {
                     ctx.fillStyle = bodyGrad;
                     ctx.fillRect(x + margin, yTail, bodyWidth, bodyH);
                     
-                    // 按住时发光
+                    // 按住时高亮（不使用shadowBlur）
                     if (n.holding) {
-                        ctx.shadowColor = color;
-                        ctx.shadowBlur = 12;
                         ctx.fillStyle = color + 'cc';
                         ctx.fillRect(x + margin, yTail, bodyWidth, bodyH);
-                        ctx.shadowBlur = 0;
                     }
                 }
                 
@@ -4012,12 +4114,9 @@ class GameEngine {
                 ctx.fillStyle = 'rgba(255,255,255,0.5)';
                 ctx.fillRect(x + margin + 3, y - h + 2, w - margin * 2 - 6, 3);
             } else if (Config.skin === 'DJMAX') {
-                // DJMAX 风格 - 圆角矩形带光泽
+                // DJMAX 风格 - 圆角矩形带光泽（无shadowBlur）
                 const h = 22;
                 const margin = 4;
-                // 发光
-                ctx.shadowColor = color;
-                ctx.shadowBlur = 8;
                 // 主体
                 const grad = ctx.createLinearGradient(0, y - h, 0, y);
                 grad.addColorStop(0, 'rgba(255,255,255,0.8)');
@@ -4027,7 +4126,6 @@ class GameEngine {
                 ctx.fillStyle = grad;
                 this.drawRoundedRect(ctx, x + margin, y - h, w - margin * 2, h, 6);
                 ctx.fill();
-                ctx.shadowBlur = 0;
                 // 玻璃高光
                 ctx.fillStyle = 'rgba(255,255,255,0.35)';
                 this.drawRoundedRect(ctx, x + margin + 2, y - h + 2, w - margin * 2 - 4, h * 0.35, 4);
@@ -4046,7 +4144,7 @@ class GameEngine {
                 ctx.fillStyle = 'rgba(0,0,0,0.3)';
                 ctx.fillRect(x + margin, y - 2, w - margin * 2, 2);
             } else if (Config.skin === 'ARROW') {
-                // DDR 箭头风格
+                // DDR 箭头风格（无shadowBlur）
                 const cx = x + w / 2;
                 const cy = y - 18;
                 const size = w * 0.7;
@@ -4054,9 +4152,6 @@ class GameEngine {
                 ctx.translate(cx, cy);
                 const rots = [Math.PI / 2, Math.PI, 0, -Math.PI / 2];
                 ctx.rotate(rots[n.col]);
-                // 外发光
-                ctx.shadowColor = color;
-                ctx.shadowBlur = 10;
                 // 箭头形状
                 ctx.beginPath();
                 ctx.moveTo(0, -size / 2);
@@ -4072,22 +4167,17 @@ class GameEngine {
                 ctx.strokeStyle = 'rgba(255,255,255,0.8)';
                 ctx.lineWidth = 2;
                 ctx.stroke();
-                ctx.shadowBlur = 0;
                 ctx.restore();
             } else if (Config.skin === 'CIRCLE') {
-                // 圆形音符
+                // 圆形音符（无shadowBlur）
                 const r = (w - 8) / 2;
                 const cx = x + w / 2;
                 const cy = y - r - 2;
-                // 外发光
-                ctx.shadowColor = color;
-                ctx.shadowBlur = 10;
                 // 主圆
                 ctx.beginPath();
                 ctx.arc(cx, cy, r, 0, Math.PI * 2);
                 ctx.fillStyle = color;
                 ctx.fill();
-                ctx.shadowBlur = 0;
                 // 内高光
                 ctx.fillStyle = 'rgba(255,255,255,0.5)';
                 ctx.beginPath();
@@ -4100,20 +4190,16 @@ class GameEngine {
                 ctx.arc(cx, cy, r, 0, Math.PI * 2);
                 ctx.stroke();
             } else if (Config.skin === 'DIAMOND') {
-                // 菱形音符
+                // 菱形音符（无shadowBlur）
                 const size = w * 0.6;
                 const cx = x + w / 2;
                 const cy = y - size / 2 - 4;
                 ctx.save();
                 ctx.translate(cx, cy);
                 ctx.rotate(Math.PI / 4);
-                // 发光
-                ctx.shadowColor = color;
-                ctx.shadowBlur = 8;
                 // 主体
                 ctx.fillStyle = color;
                 ctx.fillRect(-size / 2, -size / 2, size, size);
-                ctx.shadowBlur = 0;
                 // 高光
                 ctx.fillStyle = 'rgba(255,255,255,0.4)';
                 ctx.fillRect(-size / 2, -size / 2, size, size / 2);
@@ -4123,18 +4209,14 @@ class GameEngine {
                 ctx.strokeRect(-size / 2, -size / 2, size, size);
                 ctx.restore();
             } else if (Config.skin === 'PILL') {
-                // 胶囊型音符
+                // 胶囊型音符（无shadowBlur）
                 const h = 28;
                 const margin = 6;
                 const radius = (w - margin * 2) / 2;
-                // 发光
-                ctx.shadowColor = color;
-                ctx.shadowBlur = 10;
                 // 主体
                 ctx.fillStyle = color;
                 this.drawRoundedRect(ctx, x + margin, y - h, w - margin * 2, h, radius);
                 ctx.fill();
-                ctx.shadowBlur = 0;
                 // 顶部高光
                 const grad = ctx.createLinearGradient(0, y - h, 0, y - h + h * 0.4);
                 grad.addColorStop(0, 'rgba(255,255,255,0.6)');
@@ -4143,20 +4225,18 @@ class GameEngine {
                 this.drawRoundedRect(ctx, x + margin + 2, y - h + 2, w - margin * 2 - 4, h * 0.4, radius - 2);
                 ctx.fill();
             } else if (Config.skin === 'NEON') {
-                // 霓虹发光效果
+                // 霓虹风格（无shadowBlur，用边框代替）
                 const h = 20;
                 const margin = 4;
-                // 强发光
-                ctx.shadowColor = color;
-                ctx.shadowBlur = 20;
                 // 主体 (半透明)
                 ctx.fillStyle = color + 'cc';
                 this.drawRoundedRect(ctx, x + margin, y - h, w - margin * 2, h, 6);
                 ctx.fill();
-                // 再画一次增强发光
-                ctx.shadowBlur = 10;
-                ctx.fill();
-                ctx.shadowBlur = 0;
+                // 用亮边框代替发光
+                ctx.strokeStyle = color;
+                ctx.lineWidth = 2;
+                this.drawRoundedRect(ctx, x + margin, y - h, w - margin * 2, h, 6);
+                ctx.stroke();
                 // 中心亮线
                 ctx.fillStyle = 'rgba(255,255,255,0.9)';
                 ctx.fillRect(x + margin + 4, y - h / 2 - 1, w - margin * 2 - 8, 2);
@@ -4281,13 +4361,8 @@ class GameEngine {
                 glowColor = '#FF9AA2';
             }
             
-            // 发光圆点
+            // 圆点（无shadowBlur）
             const radius = mark.grade === 'MARVELOUS' ? 6 : 5;
-            
-            if (age < 500) {
-                ctx.shadowColor = glowColor;
-                ctx.shadowBlur = 12;
-            }
             
             ctx.beginPath();
             ctx.arc(markX, barY + barHeight/2, radius * (0.7 + alpha * 0.3), 0, Math.PI * 2);
@@ -4299,8 +4374,6 @@ class GameEngine {
             ctx.arc(markX - 1.5, barY + barHeight/2 - 1.5, radius * 0.3, 0, Math.PI * 2);
             ctx.fillStyle = `rgba(255, 255, 255, ${alpha * 0.6})`;
             ctx.fill();
-            
-            ctx.shadowBlur = 0;
         }
         
         // 可爱的标签文字
@@ -4336,15 +4409,9 @@ class GameEngine {
                 continue;
             }
             
-            // 绘制粒子
+            // 绘制粒子（无shadowBlur）
             ctx.save();
             ctx.globalAlpha = p.life * 0.8;
-            
-            // 根据判定等级添加发光效果
-            if (p.judge === 'MARVELOUS' || p.judge === 'PERFECT') {
-                ctx.shadowColor = p.color;
-                ctx.shadowBlur = 8;
-            }
             
             ctx.fillStyle = p.color;
             ctx.beginPath();
