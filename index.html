@@ -1511,14 +1511,11 @@
                     <select id="skin-select">
                         <option value="BAR">Bar (经典长条)</option>
                         <option value="O2JAM">O2Jam Style</option>
-                        <option value="DJMAX">DJMAX Style</option>
-                        <option value="OSU">osu!mania</option>
-                        <option value="ARROW">DDR Arrow</option>
+                        <option value="MANIA_FLAT">Mania Flat (平面皮肤)</option>
+                        <option value="AMSOEPIC_CIRCLES">AmSoEpicCircles</option>
+                        <option value="ETTERNA_ARROW">etterna-arrow</option>
                         <option value="CIRCLE">Circle (圆形)</option>
                         <option value="DIAMOND">Diamond (菱形)</option>
-                        <option value="PILL">Pill (胶囊)</option>
-                        <option value="NEON">Neon (霓虹)</option>
-                        <option value="RETRO">Retro (像素)</option>
                     </select>
                 </div>
                 <div class="setting-row" style="margin-top: 10px;">
@@ -1727,8 +1724,8 @@ const Config = {
     difficulty: 2,  // J2 judgement
     tailJudgement: false,
     enableFever: true,
-    enableHitSounds: true,
-    enableOffsetHint: true,
+    enableHitSounds: false,
+    enableOffsetHint: false,
     backgroundDim: 0,
     laneBrightness: 100,
     maxFps: 120,
@@ -4023,52 +4020,298 @@ class GameEngine {
             // 【重要】禁用所有shadowBlur，这是重影的主要原因
             ctx.shadowBlur = 0;
             
-            // Long Note 渲染
+            // Long Note 渲染（与皮肤风格一致）
             if (n.isHold) {
                 let yHead = this.hitY - startDelta * pixelSpeed;
                 let yTail = this.hitY - endDelta * pixelSpeed;
-                
-                if (n.holding) {
-                    yHead = this.hitY;
-                }
+
+                if (n.holding) yHead = this.hitY;
 
                 const bodyH = yHead - yTail;
-                const margin = 6;
-                const bodyWidth = w - margin * 2;
-                
+                const skin = Config.skin;
+
                 if (bodyH > 0) {
-                    // LN Body - 半透明主体
-                    ctx.fillStyle = color + '99';
-                    ctx.fillRect(x + margin, yTail, bodyWidth, bodyH);
-                    
-                    // LN Body 左右边框线
-                    ctx.fillStyle = color;
-                    ctx.fillRect(x + margin, yTail, 3, bodyH);
-                    ctx.fillRect(x + w - margin - 3, yTail, 3, bodyH);
-                    
-                    // LN Body 中心渐变光效
-                    const bodyGrad = ctx.createLinearGradient(x + margin, 0, x + w - margin, 0);
-                    bodyGrad.addColorStop(0, 'rgba(255,255,255,0)');
-                    bodyGrad.addColorStop(0.5, 'rgba(255,255,255,0.15)');
-                    bodyGrad.addColorStop(1, 'rgba(255,255,255,0)');
-                    ctx.fillStyle = bodyGrad;
-                    ctx.fillRect(x + margin, yTail, bodyWidth, bodyH);
-                    
-                    // 按住时高亮（不使用shadowBlur）
-                    if (n.holding) {
-                        ctx.fillStyle = color + 'cc';
+                    if (skin === 'ETTERNA_ARROW' || skin === 'AMSOEPIC_CIRCLES') {
+                        // etterna-arrow：使用导入的 Etterna noteskin 贴图渲染 LN
+                        // 当前这套皮肤只提供 Up 的 Hold Body/BottomCap，我们用同一张贴图套用到所有列（Etterna 本来也把四向重定向到 Up）
+                        const margin = 0;
+                        const bodyW = w - margin * 2;
+
+                        const isAmSo = (skin === 'AMSOEPIC_CIRCLES');
+                        if (isAmSo) {
+                            if (!this.amsoHoldBodyImg) {
+                                this.amsoHoldBodyImg = new Image();
+                                this.amsoHoldBodyImg.src = 'skins/AmSoEpicCircles/Holds/Up Hold Body Active (doubleres).png';
+                            }
+                            if (!this.amsoHoldTailImg) {
+                                this.amsoHoldTailImg = new Image();
+                                this.amsoHoldTailImg.src = 'skins/AmSoEpicCircles/Holds/Up Hold BottomCap active (doubleres).png';
+                            }
+                        } else {
+                            if (!this.etternaHoldBodyImg) {
+                                this.etternaHoldBodyImg = new Image();
+                                this.etternaHoldBodyImg.src = 'skins/etterna-arrow/Holds/Up Hold Body Active (doubleres).png';
+                            }
+                            if (!this.etternaHoldTailImg) {
+                                this.etternaHoldTailImg = new Image();
+                                this.etternaHoldTailImg.src = 'skins/etterna-arrow/Holds/Up Hold BottomCap active (doubleres).png';
+                            }
+                        }
+
+                        const bodyImg = isAmSo ? this.amsoHoldBodyImg : this.etternaHoldBodyImg;
+                        if (bodyImg && bodyImg.complete && bodyImg.naturalWidth > 0) {
+                            // body：按宽度拉伸，保持贴图的视觉（Etterna hold body 通常允许拉伸）
+                            ctx.drawImage(bodyImg, x + margin, yTail, bodyW, bodyH);
+                        } else {
+                            // 贴图未加载兜底
+                            ctx.fillStyle = color + '88';
+                            ctx.fillRect(x + margin, yTail, bodyW, bodyH);
+                        }
+
+                        // holding 高亮（不发光，仅提高 alpha）
+                        if (n.holding) {
+                            ctx.fillStyle = 'rgba(255,255,255,0.08)';
+                            ctx.fillRect(x + margin, yTail, bodyW, bodyH);
+                        }
+                    } else if (skin === 'CIRCLE') {
+                        // 圆球皮肤：LN body 做成“宽一点的丝带”，不要像一根棍子
+                        // 视觉：宽圆角条 + 轻微内高光 + 淡边线（不发光）
+                        const margin = 6;
+                        const bodyW = w - margin * 2;
+                        const radius = Math.max(8, Math.min(bodyW / 2, 18));
+
+                        ctx.fillStyle = color + '70';
+                        this.drawRoundedRect(ctx, x + margin, yTail, bodyW, bodyH, radius);
+                        ctx.fill();
+
+                        // 内部高光带（上半部分更亮）
+                        const g = ctx.createLinearGradient(0, yTail, 0, yTail + Math.max(1, bodyH));
+                        g.addColorStop(0, 'rgba(255,255,255,0.22)');
+                        g.addColorStop(0.45, 'rgba(255,255,255,0.10)');
+                        g.addColorStop(1, 'rgba(255,255,255,0)');
+                        ctx.fillStyle = g;
+                        this.drawRoundedRect(ctx, x + margin + 2, yTail + 1, bodyW - 4, bodyH * 0.55, Math.max(6, radius - 2));
+                        ctx.fill();
+
+                        // 细边线让它更像皮肤而不是“涂色柱”
+                        ctx.strokeStyle = 'rgba(0,0,0,0.10)';
+                        ctx.lineWidth = 1;
+                        this.drawRoundedRect(ctx, x + margin, yTail, bodyW, bodyH, radius);
+                        ctx.stroke();
+
+                        if (n.holding) {
+                            ctx.fillStyle = color + '9a';
+                            this.drawRoundedRect(ctx, x + margin, yTail, bodyW, bodyH, radius);
+                            ctx.fill();
+                        }
+                    } else if (skin === 'MANIA_FLAT') {
+                        // osu!mania 平面皮肤：窄条 + 清晰边线 + 轻微渐变
+                        const margin = 6;
+                        const bodyW = w - margin * 2;
+                        const radius = 4;
+
+                        // 主体
+                        const g = ctx.createLinearGradient(0, yTail, 0, yTail + bodyH);
+                        g.addColorStop(0, this.lightenColor(color, 12) + 'aa');
+                        g.addColorStop(1, this.darkenColor(color, 12) + 'aa');
+                        ctx.fillStyle = g;
+                        this.drawRoundedRect(ctx, x + margin, yTail, bodyW, bodyH, radius);
+                        ctx.fill();
+
+                        // 边线（很像mania常见皮肤的清晰轮廓）
+                        ctx.fillStyle = 'rgba(0,0,0,0.18)';
+                        ctx.fillRect(x + margin, yTail, 1.5, bodyH);
+                        ctx.fillRect(x + margin + bodyW - 1.5, yTail, 1.5, bodyH);
+
+                        // 按住时更亮
+                        if (n.holding) {
+                            ctx.fillStyle = color + 'bb';
+                            this.drawRoundedRect(ctx, x + margin, yTail, bodyW, bodyH, radius);
+                            ctx.fill();
+                        }
+                    } else {
+                        // 其他皮肤保持原来的 LN 风格（默认矩形主体）
+                        const margin = 6;
+                        const bodyWidth = w - margin * 2;
+
+                        ctx.fillStyle = color + '99';
                         ctx.fillRect(x + margin, yTail, bodyWidth, bodyH);
+
+                        ctx.fillStyle = color;
+                        ctx.fillRect(x + margin, yTail, 3, bodyH);
+                        ctx.fillRect(x + w - margin - 3, yTail, 3, bodyH);
+
+                        const bodyGrad = ctx.createLinearGradient(x + margin, 0, x + w - margin, 0);
+                        bodyGrad.addColorStop(0, 'rgba(255,255,255,0)');
+                        bodyGrad.addColorStop(0.5, 'rgba(255,255,255,0.15)');
+                        bodyGrad.addColorStop(1, 'rgba(255,255,255,0)');
+                        ctx.fillStyle = bodyGrad;
+                        ctx.fillRect(x + margin, yTail, bodyWidth, bodyH);
+
+                        if (n.holding) {
+                            ctx.fillStyle = color + 'cc';
+                            ctx.fillRect(x + margin, yTail, bodyWidth, bodyH);
+                        }
                     }
                 }
-                
-                // LN Tail (尾部) - 小矩形
-                const tailH = 8;
-                ctx.fillStyle = color;
-                this.drawRoundedRect(ctx, x + margin, yTail - tailH/2, bodyWidth, tailH, 2);
-                ctx.fill();
-                // Tail 高光
-                ctx.fillStyle = 'rgba(255,255,255,0.4)';
-                ctx.fillRect(x + margin + 2, yTail - tailH/2, bodyWidth - 4, 2);
+
+                // Tail：与皮肤一致
+                if (skin === 'CIRCLE') {
+                    // 三角尾部：更像mania皮肤常见的“尖尾”，与丝带 body 更搭
+                    const margin = 6;
+                    const bodyW = w - margin * 2;
+                    const cx = x + w / 2;
+                    // 底边与 LN body 末端平行：同宽
+                    const halfW = bodyW / 2;
+                    // 维持较高，避免扁
+                    const triH = Math.max(22, Math.min(46, bodyW * 1.05));
+
+                    // 让三角“紧紧连着”LN body：底边贴在 body 的末端
+                    // 这里 body 的末端就是 yTail（body 从 yTail 到 yHead）
+                    // 底边轻微嵌入 body 里 1px，避免看见“断层”
+                    const baseY = yTail + 1;
+                    const tipY = baseY - triH;
+
+                    // 过渡：先画一个“圆角楔形”把 body 平滑收尖，再接尖端三角，避免突兀
+                    // 楔形高度取 triH 的一部分，向上收窄
+                    const wedgeH = Math.max(10, Math.round(triH * 0.38));
+                    const wedgeTopHalfW = halfW * 0.62;
+                    const wedgeTopY = baseY - wedgeH;
+
+                    // 楔形主体（圆角收尖感）
+                    ctx.fillStyle = n.holding ? (color + 'ff') : color;
+                    ctx.beginPath();
+                    ctx.moveTo(cx - halfW, baseY);
+                    ctx.lineTo(cx + halfW, baseY);
+                    ctx.lineTo(cx + wedgeTopHalfW, wedgeTopY);
+                    ctx.lineTo(cx - wedgeTopHalfW, wedgeTopY);
+                    ctx.closePath();
+                    ctx.fill();
+
+                    // 楔形顶部轻高光
+                    ctx.fillStyle = 'rgba(255,255,255,0.18)';
+                    ctx.beginPath();
+                    ctx.moveTo(cx - wedgeTopHalfW * 0.92, wedgeTopY + 1);
+                    ctx.lineTo(cx + wedgeTopHalfW * 0.92, wedgeTopY + 1);
+                    ctx.lineTo(cx + halfW * 0.62, baseY - wedgeH * 0.45);
+                    ctx.lineTo(cx - halfW * 0.62, baseY - wedgeH * 0.45);
+                    ctx.closePath();
+                    ctx.fill();
+
+                    // 尖端三角（从楔形顶端接上去）
+                    const tipBaseY = wedgeTopY + 1;
+                    const tipHalfW = wedgeTopHalfW * 0.78;
+
+                    ctx.fillStyle = n.holding ? (color + 'ff') : color;
+                    ctx.beginPath();
+                    ctx.moveTo(cx, tipY);
+                    ctx.lineTo(cx - tipHalfW, tipBaseY);
+                    ctx.lineTo(cx + tipHalfW, tipBaseY);
+                    ctx.closePath();
+                    ctx.fill();
+
+                    // 顶部高光（很轻，避免发光/重影）
+                    ctx.fillStyle = 'rgba(255,255,255,0.28)';
+                    ctx.beginPath();
+                    ctx.moveTo(cx, baseY - triH * 0.62);
+                    ctx.lineTo(cx - halfW * 0.45, baseY - triH * 0.15);
+                    ctx.lineTo(cx + halfW * 0.45, baseY - triH * 0.15);
+                    ctx.closePath();
+                    ctx.fill();
+
+                    // 淡轮廓
+                    ctx.strokeStyle = 'rgba(0,0,0,0.12)';
+                    ctx.lineWidth = 1;
+                    ctx.beginPath();
+                    // 外轮廓：沿楔形与尖端
+                    ctx.moveTo(cx, tipY);
+                    ctx.lineTo(cx - tipHalfW, tipBaseY);
+                    ctx.lineTo(cx - wedgeTopHalfW, wedgeTopY);
+                    ctx.lineTo(cx - halfW, baseY);
+                    ctx.lineTo(cx + halfW, baseY);
+                    ctx.lineTo(cx + wedgeTopHalfW, wedgeTopY);
+                    ctx.lineTo(cx + tipHalfW, tipBaseY);
+                    ctx.closePath();
+                    ctx.stroke();
+                } else if (skin === 'MANIA_FLAT') {
+                    const margin = 6;
+                    const bodyW = w - margin * 2;
+                    const h = 10;
+                    ctx.fillStyle = color;
+                    this.drawRoundedRect(ctx, x + margin, yTail - h / 2, bodyW, h, 4);
+                    ctx.fill();
+                    // 顶部高光线（非常轻）
+                    ctx.fillStyle = 'rgba(255,255,255,0.22)';
+                    ctx.fillRect(x + margin + 2, yTail - h / 2 + 1, bodyW - 4, 2);
+                } else if (skin === 'ETTERNA_ARROW' || skin === 'AMSOEPIC_CIRCLES') {
+                    // etterna-arrow / AmSoEpicCircles：尾部用 BottomCap 贴图（同一张用于所有列）
+                    const margin = 0;
+                    const bodyW = w - margin * 2;
+                    const h = Math.max(12, Math.min(28, Math.round(w * 0.65)));
+
+                    const isAmSo = (skin === 'AMSOEPIC_CIRCLES');
+                    if (isAmSo) {
+                        if (!this.amsoHoldTailImg) {
+                            this.amsoHoldTailImg = new Image();
+                            this.amsoHoldTailImg.src = 'skins/AmSoEpicCircles/Holds/Up Hold BottomCap active (doubleres).png';
+                        }
+                    } else {
+                        if (!this.etternaHoldTailImg) {
+                            this.etternaHoldTailImg = new Image();
+                            this.etternaHoldTailImg.src = 'skins/etterna-arrow/Holds/Up Hold BottomCap active (doubleres).png';
+                        }
+                    }
+                    const tailImg = isAmSo ? this.amsoHoldTailImg : this.etternaHoldTailImg;
+                    if (tailImg && tailImg.complete && tailImg.naturalWidth > 0) {
+                        ctx.drawImage(tailImg, x + margin, yTail - h / 2, bodyW, h);
+
+                        // 视觉修正：强制“圆润胶囊尾巴”（有些皮肤 bottomcap 轮廓不够圆）
+                        // 方案：在贴图上叠加两端半圆端盖 + 轻微高光，不用 shadowBlur，避免重影。
+                        const r = Math.max(6, Math.min(h / 2, bodyW / 2));
+                        const leftCx = x + margin + r;
+                        const rightCx = x + margin + bodyW - r;
+                        const cy = yTail;
+
+                        ctx.save();
+                        ctx.globalAlpha *= 0.92;
+                        ctx.fillStyle = color;
+                        ctx.beginPath();
+                        ctx.arc(leftCx, cy, r, Math.PI / 2, Math.PI * 1.5);
+                        ctx.arc(rightCx, cy, r, -Math.PI / 2, Math.PI / 2);
+                        ctx.closePath();
+                        ctx.fill();
+
+                        // 顶部轻高光条
+                        ctx.globalAlpha *= 0.35;
+                        ctx.fillStyle = 'rgba(255,255,255,1)';
+                        ctx.beginPath();
+                        ctx.arc(leftCx, cy, r * 0.86, Math.PI / 2, Math.PI * 1.5);
+                        ctx.arc(rightCx, cy, r * 0.86, -Math.PI / 2, Math.PI / 2);
+                        ctx.closePath();
+                        ctx.translate(0, -r * 0.22);
+                        ctx.fill();
+                        ctx.restore();
+                    } else {
+                        // 兜底：直接画圆角胶囊尾巴
+                        const r = Math.max(6, Math.min(h / 2, bodyW / 2));
+                        ctx.fillStyle = color;
+                        this.drawRoundedRect(ctx, x + margin, yTail - h / 2, bodyW, h, r);
+                        ctx.fill();
+
+                        ctx.fillStyle = 'rgba(255,255,255,0.22)';
+                        this.drawRoundedRect(ctx, x + margin + 1, yTail - h / 2 + 1, bodyW - 2, Math.max(2, h * 0.26), Math.max(3, r - 2));
+                        ctx.fill();
+                    }
+                } else {
+                    const margin = 6;
+                    const bodyWidth = w - margin * 2;
+                    const tailH = 8;
+                    ctx.fillStyle = color;
+                    this.drawRoundedRect(ctx, x + margin, yTail - tailH / 2, bodyWidth, tailH, 2);
+                    ctx.fill();
+                    ctx.fillStyle = 'rgba(255,255,255,0.4)';
+                    ctx.fillRect(x + margin + 2, yTail - tailH / 2, bodyWidth - 4, 2);
+                }
             }
 
             // 使用视觉时间计算note位置
@@ -4080,6 +4323,32 @@ class GameEngine {
             ctx.lineWidth = 1;
 
             // ============ 皮肤渲染 ============
+            // Etterna noteskin 资源（按需懒加载）
+            const getEtternaArrowImg = (col) => {
+                if (!this.etternaArrowImgs) {
+                    this.etternaArrowImgs = [null, null, null, null];
+                }
+                if (this.etternaArrowImgs[col]) return this.etternaArrowImgs[col];
+                const names = ['Down', 'Left', 'Right', 'Up'];
+                const img = new Image();
+                img.src = `skins/etterna-arrow/Notes/_${names[col]} Tap Note 1x1 (res 64x64).png`;
+                this.etternaArrowImgs[col] = img;
+                return img;
+            };
+
+            // AmSoEpicCircles 资源（同 etterna-arrow 逻辑：贴图懒加载）
+            const getAmSoEpicCircleImg = (col) => {
+                if (!this.amSoEpicCircleImgs) {
+                    this.amSoEpicCircleImgs = [null, null, null, null];
+                }
+                if (this.amSoEpicCircleImgs[col]) return this.amSoEpicCircleImgs[col];
+                const names = ['Down', 'Left', 'Right', 'Up'];
+                const img = new Image();
+                img.src = `skins/AmSoEpicCircles/Notes/_${names[col]} Tap Note 1x1 (res 64x64).png`;
+                this.amSoEpicCircleImgs[col] = img;
+                return img;
+            };
+
             if (Config.skin === 'BAR') {
                 // 经典长条 - 手感最佳的基础皮肤
                 const h = 20;
@@ -4096,78 +4365,129 @@ class GameEngine {
                 ctx.fillStyle = 'rgba(0,0,0,0.2)';
                 ctx.fillRect(x + margin, y - 3, w - margin * 2, 3);
             } else if (Config.skin === 'O2JAM') {
-                // O2Jam 经典风格 - 扁平矩形带渐变和边框
+                // O2Jam 经典风格（认真重做）：
+                // 扁矩形 + 明显白边框 + 内部分层（上亮下暗）+ 中心高光条 + 底部暗线
+                // 目标：清晰、对比强、读谱舒服（不使用 shadowBlur）
                 const h = 18;
                 const margin = 2;
-                // 外边框
-                ctx.fillStyle = 'rgba(255,255,255,0.9)';
-                ctx.fillRect(x + margin, y - h - 1, w - margin * 2, h + 2);
-                // 主体渐变
-                const grad = ctx.createLinearGradient(0, y - h, 0, y);
-                grad.addColorStop(0, this.lightenColor(color, 40));
-                grad.addColorStop(0.3, color);
-                grad.addColorStop(0.7, color);
-                grad.addColorStop(1, this.darkenColor(color, 30));
+                const ww = w - margin * 2;
+                const xx = x + margin;
+                const yy = y - h;
+
+                // 1) 外框（白边 + 轻微灰阴影边）
+                ctx.fillStyle = 'rgba(255,255,255,0.95)';
+                ctx.fillRect(xx, yy - 1, ww, h + 2);
+                ctx.strokeStyle = 'rgba(0,0,0,0.18)';
+                ctx.lineWidth = 1;
+                ctx.strokeRect(xx + 0.5, yy - 0.5, ww - 1, h + 1);
+
+                // 2) 内部主体（上亮下暗的垂直渐变）
+                const grad = ctx.createLinearGradient(0, yy, 0, yy + h);
+                grad.addColorStop(0, this.lightenColor(color, 22));
+                grad.addColorStop(0.55, color);
+                grad.addColorStop(1, this.darkenColor(color, 26));
                 ctx.fillStyle = grad;
-                ctx.fillRect(x + margin + 1, y - h, w - margin * 2 - 2, h);
-                // 中心高光条
-                ctx.fillStyle = 'rgba(255,255,255,0.5)';
-                ctx.fillRect(x + margin + 3, y - h + 2, w - margin * 2 - 6, 3);
-            } else if (Config.skin === 'DJMAX') {
-                // DJMAX 风格 - 圆角矩形带光泽（无shadowBlur）
-                const h = 22;
-                const margin = 4;
-                // 主体
+                ctx.fillRect(xx + 1, yy, ww - 2, h);
+
+                // 3) 上沿细高光（O2Jam 常见的“亮边”）
+                ctx.fillStyle = 'rgba(255,255,255,0.68)';
+                ctx.fillRect(xx + 2, yy + 2, ww - 4, 2);
+
+                // 4) 中心高光条（更细、更克制）
+                ctx.fillStyle = 'rgba(255,255,255,0.42)';
+                ctx.fillRect(xx + 3, yy + 6, ww - 6, 2);
+
+                // 5) 底部暗线（增强厚度感）
+                ctx.fillStyle = 'rgba(0,0,0,0.28)';
+                ctx.fillRect(xx + 1, yy + h - 2, ww - 2, 2);
+            } else if (Config.skin === 'MANIA_FLAT') {
+                // osu!mania 玩家偏好的“平面皮肤”：清晰、克制、有层次
+                // 注意：不改 CIRCLE
+                const h = 18;
+                // 让它真的“更宽更显眼”：铺满整列 + 更高对比边线
+                const margin = 0;
+                const ww = w - margin * 2;
+
+                // 主体：上下轻微明暗（更“平”，但不单调）
                 const grad = ctx.createLinearGradient(0, y - h, 0, y);
-                grad.addColorStop(0, 'rgba(255,255,255,0.8)');
-                grad.addColorStop(0.2, color);
-                grad.addColorStop(0.8, color);
-                grad.addColorStop(1, this.darkenColor(color, 40));
+                grad.addColorStop(0, this.lightenColor(color, 10));
+                grad.addColorStop(1, this.darkenColor(color, 12));
                 ctx.fillStyle = grad;
-                this.drawRoundedRect(ctx, x + margin, y - h, w - margin * 2, h, 6);
+                this.drawRoundedRect(ctx, x + margin, y - h, ww, h, 4);
                 ctx.fill();
-                // 玻璃高光
-                ctx.fillStyle = 'rgba(255,255,255,0.35)';
-                this.drawRoundedRect(ctx, x + margin + 2, y - h + 2, w - margin * 2 - 4, h * 0.35, 4);
+
+                // 顶部高光线（薄）
+                ctx.fillStyle = 'rgba(255,255,255,0.45)';
+                this.drawRoundedRect(ctx, x + margin + 1, y - h + 1, ww - 2, 3, 3);
                 ctx.fill();
-            } else if (Config.skin === 'OSU') {
-                // osu!mania 风格 - 简洁扁平
-                const h = 16;
-                const margin = 2;
-                // 主体
-                ctx.fillStyle = color;
-                ctx.fillRect(x + margin, y - h, w - margin * 2, h);
-                // 顶部白线
-                ctx.fillStyle = 'rgba(255,255,255,0.7)';
-                ctx.fillRect(x + margin, y - h, w - margin * 2, 2);
-                // 底部暗线
-                ctx.fillStyle = 'rgba(0,0,0,0.3)';
-                ctx.fillRect(x + margin, y - 2, w - margin * 2, 2);
-            } else if (Config.skin === 'ARROW') {
-                // DDR 箭头风格（无shadowBlur）
-                const cx = x + w / 2;
-                const cy = y - 18;
-                const size = w * 0.7;
-                ctx.save();
-                ctx.translate(cx, cy);
-                const rots = [Math.PI / 2, Math.PI, 0, -Math.PI / 2];
-                ctx.rotate(rots[n.col]);
-                // 箭头形状
-                ctx.beginPath();
-                ctx.moveTo(0, -size / 2);
-                ctx.lineTo(size / 2, size / 4);
-                ctx.lineTo(size / 4, size / 4);
-                ctx.lineTo(size / 4, size / 2);
-                ctx.lineTo(-size / 4, size / 2);
-                ctx.lineTo(-size / 4, size / 4);
-                ctx.lineTo(-size / 2, size / 4);
-                ctx.closePath();
-                ctx.fillStyle = color;
-                ctx.fill();
-                ctx.strokeStyle = 'rgba(255,255,255,0.8)';
-                ctx.lineWidth = 2;
+
+                // 外轮廓（淡黑）
+                ctx.strokeStyle = 'rgba(0,0,0,0.18)';
+                ctx.lineWidth = 1;
+                this.drawRoundedRect(ctx, x + margin, y - h, ww, h, 4);
                 ctx.stroke();
-                ctx.restore();
+
+                // 左右深边（mania常见的“框感”，提升存在感）
+                ctx.fillStyle = 'rgba(0,0,0,0.26)';
+                ctx.fillRect(x + margin, y - h, 2, h);
+                ctx.fillRect(x + margin + ww - 2, y - h, 2, h);
+            } else if (Config.skin === 'ETTERNA_ARROW') {
+                // etterna-arrow：使用导入的 Etterna noteskin 箭头贴图
+                // 为了可读性与贴图比例：按列宽做等比缩放，轻微留边
+                const pad = 0;
+                // 让箭头真的“够大”：默认接近列宽（并允许略超一点）
+                // 进一步放大：接近“铺满整列”的手感（Etterna 常见视觉更大）
+                const size = Math.max(44, Math.min(Math.round(w * 1.75), 220));
+                const cx = x + w / 2;
+                // 稍微往判定线贴近一点
+                const cy = y - size / 2 + 2;
+
+                const img = getEtternaArrowImg(n.col);
+                if (img && img.complete && img.naturalWidth > 0) {
+                    ctx.drawImage(img, cx - size / 2, cy - size / 2, size, size);
+                } else {
+                    // 贴图未加载时的兜底：用现有 ARROW 形状简画
+                    const size2 = w * 0.7;
+                    ctx.save();
+                    ctx.translate(cx, cy);
+                    const rots = [Math.PI / 2, Math.PI, 0, -Math.PI / 2];
+                    ctx.rotate(rots[n.col]);
+                    ctx.beginPath();
+                    ctx.moveTo(0, -size2 / 2);
+                    ctx.lineTo(size2 / 2, size2 / 4);
+                    ctx.lineTo(size2 / 4, size2 / 4);
+                    ctx.lineTo(size2 / 4, size2 / 2);
+                    ctx.lineTo(-size2 / 4, size2 / 2);
+                    ctx.lineTo(-size2 / 4, size2 / 4);
+                    ctx.lineTo(-size2 / 2, size2 / 4);
+                    ctx.closePath();
+                    ctx.fillStyle = color;
+                    ctx.fill();
+                    ctx.strokeStyle = 'rgba(255,255,255,0.8)';
+                    ctx.lineWidth = 2;
+                    ctx.stroke();
+                    ctx.restore();
+                }
+            } else if (Config.skin === 'AMSOEPIC_CIRCLES') {
+                // AmSoEpicCircles：贴图版（tap + LN），方向素材同样是四向 Tap 贴图
+                const size = Math.max(44, Math.min(Math.round(w * 1.55), 200));
+                const cx = x + w / 2;
+                const cy = y - size / 2 + 2;
+
+                const img = getAmSoEpicCircleImg(n.col);
+                if (img && img.complete && img.naturalWidth > 0) {
+                    ctx.drawImage(img, cx - size / 2, cy - size / 2, size, size);
+                } else {
+                    // 兜底：用 CIRCLE 的简化圆
+                    const r = (w - 8) / 2;
+                    ctx.beginPath();
+                    ctx.arc(cx, y - r - 2, r, 0, Math.PI * 2);
+                    ctx.fillStyle = color;
+                    ctx.fill();
+                    ctx.strokeStyle = 'rgba(255,255,255,0.6)';
+                    ctx.lineWidth = 2;
+                    ctx.stroke();
+                }
             } else if (Config.skin === 'CIRCLE') {
                 // 圆形音符（无shadowBlur）
                 const r = (w - 8) / 2;
@@ -4208,57 +4528,6 @@ class GameEngine {
                 ctx.lineWidth = 2;
                 ctx.strokeRect(-size / 2, -size / 2, size, size);
                 ctx.restore();
-            } else if (Config.skin === 'PILL') {
-                // 胶囊型音符（无shadowBlur）
-                const h = 28;
-                const margin = 6;
-                const radius = (w - margin * 2) / 2;
-                // 主体
-                ctx.fillStyle = color;
-                this.drawRoundedRect(ctx, x + margin, y - h, w - margin * 2, h, radius);
-                ctx.fill();
-                // 顶部高光
-                const grad = ctx.createLinearGradient(0, y - h, 0, y - h + h * 0.4);
-                grad.addColorStop(0, 'rgba(255,255,255,0.6)');
-                grad.addColorStop(1, 'rgba(255,255,255,0)');
-                ctx.fillStyle = grad;
-                this.drawRoundedRect(ctx, x + margin + 2, y - h + 2, w - margin * 2 - 4, h * 0.4, radius - 2);
-                ctx.fill();
-            } else if (Config.skin === 'NEON') {
-                // 霓虹风格（无shadowBlur，用边框代替）
-                const h = 20;
-                const margin = 4;
-                // 主体 (半透明)
-                ctx.fillStyle = color + 'cc';
-                this.drawRoundedRect(ctx, x + margin, y - h, w - margin * 2, h, 6);
-                ctx.fill();
-                // 用亮边框代替发光
-                ctx.strokeStyle = color;
-                ctx.lineWidth = 2;
-                this.drawRoundedRect(ctx, x + margin, y - h, w - margin * 2, h, 6);
-                ctx.stroke();
-                // 中心亮线
-                ctx.fillStyle = 'rgba(255,255,255,0.9)';
-                ctx.fillRect(x + margin + 4, y - h / 2 - 1, w - margin * 2 - 8, 2);
-            } else if (Config.skin === 'RETRO') {
-                // 像素复古风格
-                const h = 20;
-                const margin = 4;
-                const pixelSize = 4;
-                // 黑色边框
-                ctx.fillStyle = '#000';
-                ctx.fillRect(x + margin - 2, y - h - 2, w - margin * 2 + 4, h + 4);
-                // 主色块
-                ctx.fillStyle = color;
-                ctx.fillRect(x + margin, y - h, w - margin * 2, h);
-                // 像素高光
-                ctx.fillStyle = 'rgba(255,255,255,0.5)';
-                ctx.fillRect(x + margin, y - h, w - margin * 2, pixelSize);
-                ctx.fillRect(x + margin, y - h, pixelSize, h);
-                // 像素阴影
-                ctx.fillStyle = 'rgba(0,0,0,0.4)';
-                ctx.fillRect(x + margin, y - pixelSize, w - margin * 2, pixelSize);
-                ctx.fillRect(x + w - margin - pixelSize, y - h, pixelSize, h);
             }
             
             ctx.shadowBlur = 0;
@@ -4642,3 +4911,4 @@ window.onload = () => new GameEngine();
 </script>
 </body>
 </html>
+
