@@ -2665,6 +2665,84 @@ class GameEngine {
         document.querySelectorAll('.key-input').forEach(el => el.addEventListener('click', (e) => this.startKeyBind(e.target)));
         $('bind-restart').addEventListener('click', (e) => this.startSysKeyBind(e.target, 'restart'));
         $('bind-hide').addEventListener('click', (e) => this.startSysKeyBind(e.target, 'hideCombo'));
+
+        // 100% 保证 range 能拖动：即使浏览器原生拖动链路被全局行为打断，也能强制跟随指针移动
+        const protectRanges = () => {
+            const ranges = Array.from(document.querySelectorAll('input[type="range"]'));
+            for (const el of ranges) {
+                if (el.__rangeProtected) continue;
+                el.__rangeProtected = true;
+
+                // 防止拖动时触发页面滚动/选择等链路
+                el.style.touchAction = 'none';
+                el.style.userSelect = 'none';
+
+                const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+                const getStep = () => {
+                    const s = parseFloat(el.step);
+                    return (isFinite(s) && s > 0) ? s : 1;
+                };
+                const getMin = () => {
+                    const m = parseFloat(el.min);
+                    return isFinite(m) ? m : 0;
+                };
+                const getMax = () => {
+                    const m = parseFloat(el.max);
+                    return isFinite(m) ? m : 100;
+                };
+                const roundToStep = (v) => {
+                    const step = getStep();
+                    const min = getMin();
+                    // 避免浮点误差
+                    const n = Math.round((v - min) / step) * step + min;
+                    return parseFloat(n.toFixed(6));
+                };
+                const setFromClientX = (clientX, commit = false) => {
+                    const rect = el.getBoundingClientRect();
+                    const t = rect.width > 0 ? clamp((clientX - rect.left) / rect.width, 0, 1) : 0;
+                    const min = getMin();
+                    const max = getMax();
+                    const raw = min + (max - min) * t;
+                    const val = roundToStep(raw);
+                    const next = clamp(val, min, max);
+                    if (String(el.value) !== String(next)) {
+                        el.value = String(next);
+                        el.dispatchEvent(new Event('input', { bubbles: true }));
+                    }
+                    if (commit) {
+                        el.dispatchEvent(new Event('change', { bubbles: true }));
+                    }
+                };
+
+                el.addEventListener('pointerdown', (e) => {
+                    // 左键/触摸/笔
+                    if (e.button != null && e.button !== 0) return;
+                    e.preventDefault();
+                    e.stopPropagation();
+                    try { el.setPointerCapture(e.pointerId); } catch (_) {}
+                    setFromClientX(e.clientX);
+                }, { passive: false });
+
+                el.addEventListener('pointermove', (e) => {
+                    // 只有捕获成功时才更新（或者按下状态）
+                    if (e.buttons === 0) return;
+                    e.preventDefault();
+                    setFromClientX(e.clientX);
+                }, { passive: false });
+
+                const end = (e) => {
+                    try { el.releasePointerCapture(e.pointerId); } catch (_) {}
+                    setFromClientX(e.clientX ?? (el.getBoundingClientRect().left + el.getBoundingClientRect().width / 2), true);
+                };
+                el.addEventListener('pointerup', end, { passive: true });
+                el.addEventListener('pointercancel', end, { passive: true });
+            }
+        };
+
+        protectRanges();
+        // 如果有动态创建的 range（未来扩展），也能自动兜底
+        const mo = new MutationObserver(() => protectRanges());
+        mo.observe(document.body, { subtree: true, childList: true });
     }
     
     bindModEvents() {
@@ -4911,4 +4989,3 @@ window.onload = () => new GameEngine();
 </script>
 </body>
 </html>
-
