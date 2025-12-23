@@ -1,0 +1,18 @@
+{
+  "name": "Rhythm Cascade",
+  "short_name": "Rhythm",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#FFE4EC",
+  "theme_color": "#FF85A2",
+  "description": "Cute 4K rhythm game with offline PWA support.",
+  "icons": [
+    {
+      "src": "pwa-icon.svg",
+      "sizes": "512x512",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ]
+}
