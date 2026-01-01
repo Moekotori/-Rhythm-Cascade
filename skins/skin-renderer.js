@@ -133,9 +133,37 @@ const SkinRenderer = {
                     // 防止 sh 为 0 或负数
                     if (sh <= 0) sh = img.naturalHeight;
 
-                    // 目标区域：以列宽为基准，Note 近似正方形
-                    // 方案四：Soft Pixel Snapping - 只在最后一步取整
-                    ctx.drawImage(img, sx, sy, sw, sh, Math.round(x), Math.round(y - w / 2), Math.round(w), Math.round(w));
+                    // 旋转逻辑：如果该图片被多个轨道共享，且近似正方形，则根据轨道进行旋转
+                    // 假设基础图片是向上的箭头 (Up)
+                    const isShared = info.targetCols && info.targetCols.length > 1;
+                    const aspectRatio = img.naturalWidth / frameHeight;
+                    const isSquare = aspectRatio > 0.8 && aspectRatio < 1.2;
+
+                    if (isShared && isSquare) {
+                        ctx.save();
+                        const cx = Math.round(x + w / 2);
+                        const cy = Math.round(y);
+                        ctx.translate(cx, cy);
+
+                        // Rotation mapping (Base: Up)
+                        // Col 0 (Left): -90
+                        // Col 1 (Down): 180
+                        // Col 2 (Up): 0
+                        // Col 3 (Right): 90
+                        let deg = 0;
+                        if (col === 0) deg = -90;
+                        else if (col === 1) deg = 180;
+                        else if (col === 2) deg = 0;
+                        else if (col === 3) deg = 90;
+
+                        ctx.rotate(deg * Math.PI / 180);
+                        ctx.drawImage(img, sx, sy, sw, sh, -Math.round(w / 2), -Math.round(w / 2), Math.round(w), Math.round(w));
+                        ctx.restore();
+                    } else {
+                        // 目标区域：以列宽为基准，Note 近似正方形
+                        // 方案四：Soft Pixel Snapping - 只在最后一步取整
+                        ctx.drawImage(img, sx, sy, sw, sh, Math.round(x), Math.round(y - w / 2), Math.round(w), Math.round(w));
+                    }
                     return;
                 }
             } catch (e) {
@@ -254,7 +282,7 @@ const SkinRenderer = {
     drawEtternaArrowNote(ctx, x, y, w, col, color) {
         const size = Math.max(44, Math.min(Math.round(w * 1.75), 220));
         const cx = x + w / 2;
-        const cy = y - size / 2 + 2;
+        const cy = y; // 中心对齐判定线
 
         const img = getEtternaArrowImg(col);
         if (img && img.complete && img.naturalWidth > 0) {
@@ -289,7 +317,7 @@ const SkinRenderer = {
     drawAmSoEpicCircleNote(ctx, x, y, w, col, color) {
         const size = Math.max(44, Math.min(Math.round(w * 1.55), 200));
         const cx = x + w / 2;
-        const cy = y - size / 2 + 2;
+        const cy = y; // 中心对齐判定线
 
         const img = getAmSoEpicCircleImg(col);
         if (img && img.complete && img.naturalWidth > 0) {
@@ -417,27 +445,30 @@ const SkinRenderer = {
     drawCircleNote(ctx, x, y, w, color) {
         const r = (w - 8) / 2;
         const cx = x + w / 2;
-        const cy = y - r - 2;
+        const cy = y; // 中心对齐判定线
         
-        // 方案二：给 Note 加一层微弱的辉光，柔化边缘
+        // 性能优化：移除 shadowBlur，使用半透明圆模拟辉光
         ctx.save();
-        ctx.shadowBlur = 10;
-        ctx.shadowColor = color;
-        ctx.shadowOffsetX = 0;
-        ctx.shadowOffsetY = 0;
+        ctx.globalAlpha = 0.4;
+        ctx.fillStyle = color;
+        ctx.beginPath();
+        ctx.arc(cx, cy, r + 4, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.restore();
         
+        // 绘制主体
         ctx.beginPath();
         ctx.arc(cx, cy, r, 0, Math.PI * 2);
         ctx.fillStyle = color;
         ctx.fill();
         
-        ctx.restore(); // 清除阴影，避免影响后续绘制
-        
+        // 高光
         ctx.fillStyle = 'rgba(255,255,255,0.5)';
         ctx.beginPath();
         ctx.arc(cx - r * 0.25, cy - r * 0.25, r * 0.4, 0, Math.PI * 2);
         ctx.fill();
         
+        // 描边
         ctx.strokeStyle = 'rgba(255,255,255,0.6)';
         ctx.lineWidth = 2;
         ctx.beginPath();
@@ -449,7 +480,7 @@ const SkinRenderer = {
     drawDiamondNote(ctx, x, y, w, color) {
         const size = w * 0.6;
         const cx = x + w / 2;
-        const cy = y - size / 2 - 4;
+        const cy = y; // 中心对齐判定线
         
         ctx.save();
         ctx.translate(cx, cy);

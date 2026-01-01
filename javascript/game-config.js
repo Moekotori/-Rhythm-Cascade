@@ -32,7 +32,9 @@ const Config = {
     volume: 100, // 音量 (0-100)
     maxFps: 120,
     showFPS: false,
-    smoothTrail: 0,
+    showHitErrorBar: true, // 新增：打击误差条开关
+    showJudgeText: true,   // 新增：判定文字开关
+    showFastLate: true,    // 新增：Fast/Late 提示开关
     noteColors: ['#FFFFFF', '#FFFFFF', '#FFFFFF', '#FFFFFF'],
     audioPrewarm: true,
     autoOffsetSuggest: true,
@@ -48,9 +50,36 @@ const Config = {
     load() {
         const saved = localStorage.getItem('rc_sakura_config_v11');
         if (saved) {
-            const parsed = JSON.parse(saved);
-            Object.assign(this, parsed);
+            try {
+                const parsed = JSON.parse(saved);
+                // 防御性合并：只合并已知属性，或者对关键属性进行校验
+                Object.assign(this, parsed);
+            } catch (e) {
+                console.error("Config load error:", e);
+            }
         }
+        
+        // 关键属性校验与修正
+        if (!Number.isFinite(this.hitPosition)) this.hitPosition = 85;
+        this.hitPosition = Math.max(0, Math.min(100, this.hitPosition));
+
+        // 滚动速度校验
+        if (!Number.isFinite(this.scrollSpeed) || this.scrollSpeed <= 0) {
+            this.scrollSpeed = 2.0;
+        }
+        this.scrollSpeed = Math.max(0.5, Math.min(10.0, this.scrollSpeed));
+
+        // 偏移量校验
+        if (!Number.isFinite(this.offset)) {
+            this.offset = 0;
+        }
+        // 限制 offset 范围，防止极端值导致判定完全失效 (-500ms 到 +500ms)
+        this.offset = Math.max(-500, Math.min(500, this.offset));
+
+        if (typeof this.scrollDirection !== 'string' || (this.scrollDirection !== 'up' && this.scrollDirection !== 'down')) {
+            this.scrollDirection = 'down';
+        }
+
         if (!Array.isArray(this.noteColors) || this.noteColors.length !== 4) {
             this.noteColors = ['#FF9AA2', '#B5EAD7', '#B5EAD7', '#FF9AA2'];
         }

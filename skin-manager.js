@@ -77,7 +77,7 @@ const SkinManager = {
                 // 5) 分析帧信息
                 const frames = this.analyzeFrames(lowerName, img, assetType);
                 const tailOrientation = assetType === 'holdTail' ? this.detectTailOrientation(img) : null;
-                this.spriteInfo.set(img, { frames, frameHeight: img.naturalHeight / frames, tailOrientation });
+                this.spriteInfo.set(img, { frames, frameHeight: img.naturalHeight / frames, tailOrientation, targetCols });
 
                 // 6) 落盘到资源表
                 this.storeAsset(targetCols, assetType, img);

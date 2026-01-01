@@ -30,7 +30,10 @@ function parseTimingPoints(content) {
             baseBPM = bpm;
             sv = 1.0;
         } else {
-            sv = Math.max(0.1, Math.min(10, -100 / beatLength));
+            // Remove clamping to support negative SVs and high speeds (Teleports)
+            sv = -100 / beatLength;
+            // Safety check for division by zero or extreme values if needed, but usually fine
+            if (!isFinite(sv)) sv = 1.0;
             bpm = baseBPM;
         }
         
